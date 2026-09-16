@@ -1,0 +1,18 @@
+fastapi
+uvicorn
+python-multipart      #for file uploads (POST /documents)
+pydantic-settings     #for parsing .env files
+
+langchain-core
+langchain-community
+langchain-text-splitters
+langchain-groq
+langchain-huggingface
+
+langchain-postgres    
+psycopg2-binary
+
+sentence-transformers #all-MiniLM-L6-v2 local embedding model
+
+pypdf                 
+beautifulsoup4 #webloader

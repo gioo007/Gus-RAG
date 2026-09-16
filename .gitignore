@@ -1,0 +1,14 @@
+.env
+.venv
+
+__pycache__/
+.vscode/
+
+
+#files
+*.pdf
+*.docx
+*.txt
+*.sql
+
+!requirements.txt
