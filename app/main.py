@@ -18,7 +18,7 @@ app.add_middleware(
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
 app.include_router(documents.router, prefix="/documents", tags=["documents"])
@@ -27,3 +27,5 @@ app.include_router(query.router, prefix="/query", tags=["query"])
 @app.get("/health", tags=["health"])
 def health_check():
     return {"status": "ok"}
+
+#SwaggerUI docs: http://127.0.0.1:8000/docs
