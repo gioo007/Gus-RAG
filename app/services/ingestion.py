@@ -1,3 +1,4 @@
+import os
 import tempfile
 import zipfile
 from pathlib import Path
@@ -24,12 +25,20 @@ def chunk_documents(docs: list[Document]) -> list[Document]:
 
 
 def ingest_pdf(file_bytes: bytes, filename: str) -> list[Document]:
-
     #temp file deleted after PyPDFLoader loads it
-    with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    tmp_path = tmp.name
+    try:
         tmp.write(file_bytes)
-        tmp.flush()
-        docs = PyPDFLoader(tmp.name).load()
+        tmp.close()
+        
+        docs = PyPDFLoader(tmp_path).load()
+    finally:
+        if os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except PermissionError:
+                pass
 
     if not docs:
         raise ValueError(f"No extractable text found in '{filename}'.")
@@ -40,13 +49,22 @@ def ingest_pdf(file_bytes: bytes, filename: str) -> list[Document]:
 
     return chunk_documents(docs)
 
-def ingest_docx(file_bytes: bytes, filename: str) -> list[Document]:
 
-    with tempfile.NamedTemporaryFile(suffix=".docx") as tmp:
+def ingest_docx(file_bytes: bytes, filename: str) -> list[Document]:
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
+    tmp_path = tmp.name
+    try:
         tmp.write(file_bytes)
-        tmp.flush()
-        docs = Docx2txtLoader(tmp.name).load()
- 
+        tmp.close()
+        
+        docs = Docx2txtLoader(tmp_path).load()
+    finally:
+        if os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except PermissionError:
+                pass
+
     if not docs:
         raise ValueError(f"No extractable text found in '{filename}'.")
  
@@ -57,7 +75,6 @@ def ingest_docx(file_bytes: bytes, filename: str) -> list[Document]:
 
 
 def ingest_web(url: str) -> list[Document]:
-
     try:
         docs = WebBaseLoader(url).load()
     except Exception as e:
@@ -87,5 +104,4 @@ def ingest_notion(zip_bytes: bytes) -> list[Document]:
         if not docs:
             raise ValueError("No Markdown files found in the Notion export.")
 
-        #return chunked docs before with temp is deleted
         return chunk_documents(docs)
