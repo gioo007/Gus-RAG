@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Callable, Literal
 from fastapi import APIRouter, HTTPException, UploadFile
-from app.models.schemas import IngestionResponse, WebIngestRequest
-from app.services import ingestion
+from app.models.schemas import DocumentSummary, IngestionResponse, WebIngestRequest
+from app.services import ingestion, vectorstore
 
 router = APIRouter()
 
@@ -14,6 +14,22 @@ LOADER_DISPATCH: dict[str, tuple[LoaderSource, LoaderFn]] = {
     ".docx": ("docx", lambda data, name: ingestion.ingest_docx(data, name)),
     ".zip": ("notion", lambda data, name: ingestion.ingest_notion(data)) #only supports/assumes notion zip exports
 }
+
+def store_chunks(chunks: list, source_type: str) -> None:
+    for chunk in chunks:
+        chunk.metadata["source_type"] = source_type
+    try:
+        vectorstore.add_documents(chunks)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to store embeddings: {e}") from e
+
+
+@router.get("/", response_model=list[DocumentSummary])
+async def list_documents():
+    try:
+        return vectorstore.list_documents()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve documents: {e}") from e
 
 
 @router.post("/upload", response_model=IngestionResponse)
@@ -37,6 +53,8 @@ async def upload_document(file: UploadFile):
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
+    store_chunks(chunks, source_type)
+
     return IngestionResponse(
         source=filename,
         source_type=source_type,
@@ -51,6 +69,8 @@ async def ingest_web_page(payload: WebIngestRequest):
         chunks = ingestion.ingest_web(str(payload.url))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+    
+    store_chunks(chunks, "web")
 
     return IngestionResponse(
         source=str(payload.url),
@@ -58,3 +78,18 @@ async def ingest_web_page(payload: WebIngestRequest):
         chunk_count=len(chunks),
         sample_chunk=chunks[0].page_content[:200] if chunks else None
     )
+
+
+@router.delete("/{source_name:path}")
+async def delete_document_by_name(source_name: str):
+    result = vectorstore.delete_by_source(source_name)
+ 
+    if result["deleted_count"] == 0:
+        raise HTTPException(
+            status_code=404, detail=f"No chunks found for source '{source_name}'."
+        )
+ 
+    return {
+        "detail": f"Successfully deleted '{source_name}' and its {result['deleted_count']} vector chunk(s).",
+        "collection_id": result["collection_id"],
+    }

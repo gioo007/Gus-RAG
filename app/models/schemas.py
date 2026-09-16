@@ -6,6 +6,10 @@ from pydantic import BaseModel, HttpUrl
 class WebIngestRequest(BaseModel):
     url: HttpUrl
 
+class DocumentSummary(BaseModel):
+    source: str
+    source_type: str | None = None
+    chunk_count: int
 
 class IngestionResponse(BaseModel):
     source: str
