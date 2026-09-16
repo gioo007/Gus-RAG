@@ -16,3 +16,5 @@ sentence-transformers #all-MiniLM-L6-v2 local embedding model
 
 pypdf                 
 beautifulsoup4 #webloader
+fonttools
+docx2txt
