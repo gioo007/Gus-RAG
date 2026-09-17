@@ -22,6 +22,7 @@ class IngestionResponse(BaseModel):
 class QueryRequest(BaseModel):
     question: str
     k: int = Field(default=4, gt=0, le=10)
+    session_id: str | None = None
  
  
 class SourceInfo(BaseModel):
@@ -32,3 +33,4 @@ class SourceInfo(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     sources: list[SourceInfo]
+    session_id: str
