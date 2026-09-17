@@ -40,7 +40,7 @@ async def upload_document(file: UploadFile):
     dispatch = LOADER_DISPATCH.get(extension)
 
     if dispatch is None:
-        supported = " ".join(LOADER_DISPATCH)
+        supported = ", ".join(LOADER_DISPATCH)
         raise HTTPException(
             status_code=415,
             detail=f"Unsupported file type '{extension or 'unknown'}'. Supported:{supported}."
