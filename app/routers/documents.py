@@ -12,7 +12,7 @@ LoaderSource = Literal["pdf", "docx", "notion"]
 LOADER_DISPATCH: dict[str, tuple[LoaderSource, LoaderFn]] = {
     ".pdf": ("pdf", lambda data, name: ingestion.ingest_pdf(data, name)),
     ".docx": ("docx", lambda data, name: ingestion.ingest_docx(data, name)),
-    ".zip": ("notion", lambda data, name: ingestion.ingest_notion(data)) #only supports/assumes notion zip exports
+    ".zip": ("notion", lambda data, name: ingestion.ingest_notion(data, name)) #only supports/assumes notion zip exports
 }
 
 def store_chunks(chunks: list, source_type: str) -> None:

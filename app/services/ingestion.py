@@ -86,7 +86,7 @@ def ingest_web(url: str) -> list[Document]:
     return chunk_documents(docs)
 
 
-def ingest_notion(zip_bytes: bytes) -> list[Document]:
+def ingest_notion(zip_bytes: bytes, filename: str) -> list[Document]:
     #load an unzipped Notion Markdown export and return chunked Documents.
     with tempfile.TemporaryDirectory() as tmp_dir:
         zip_path = Path(tmp_dir) / "export.zip"
@@ -103,5 +103,8 @@ def ingest_notion(zip_bytes: bytes) -> list[Document]:
 
         if not docs:
             raise ValueError("No Markdown files found in the Notion export.")
+
+        for doc in docs:
+                        doc.metadata["source"] = filename
 
         return chunk_documents(docs)
