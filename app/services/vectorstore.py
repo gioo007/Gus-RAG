@@ -15,6 +15,11 @@ def psycopg_connection_string(database_url: str) -> str:
         return database_url.replace("postgresql://", "postgresql+psycopg://", 1)
     return database_url
 
+engine = create_engine(
+    psycopg_connection_string(settings.DATABASE_URL),
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
 
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
@@ -24,7 +29,7 @@ embeddings = HuggingFaceEmbeddings(
 vector_store = PGVector(
     embeddings=embeddings,
     collection_name=COLLECTION_NAME,
-    connection=psycopg_connection_string(settings.DATABASE_URL),
+    connection=engine,
     use_jsonb=True,
     create_extension=False,  #toggle to True if you want to create the pgvector extension automatically (requires superuser privileges)
 )
@@ -36,8 +41,6 @@ def add_documents(chunks: list[Document]) -> list[str]:
         return []
     return vector_store.add_documents(chunks)
 
-
-engine = create_engine(psycopg_connection_string(settings.DATABASE_URL))
 
 def ensure_indexes() -> None:
 
