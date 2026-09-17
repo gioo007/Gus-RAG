@@ -1,12 +1,12 @@
 import os
 import tempfile
 import zipfile
+import trafilatura
 from pathlib import Path
 from langchain_community.document_loaders import (
     Docx2txtLoader,
     NotionDirectoryLoader,
-    PyPDFLoader,
-    WebBaseLoader
+    PyPDFLoader
 )
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -75,15 +75,16 @@ def ingest_docx(file_bytes: bytes, filename: str) -> list[Document]:
 
 
 def ingest_web(url: str) -> list[Document]:
-    try:
-        docs = WebBaseLoader(url).load()
-    except Exception as e:
-        raise ValueError(f"Could not load content from '{url}': {e}") from e
+    downloaded = trafilatura.fetch_url(url)
+    if downloaded is None:
+        raise ValueError(f"Could not load content from '{url}'.")
 
-    if not docs:
+    text = trafilatura.extract(downloaded)
+    if not text:
         raise ValueError(f"No content found at '{url}'.")
 
-    return chunk_documents(docs)
+    doc = Document(page_content=text, metadata={"source": url})
+    return chunk_documents([doc])
 
 
 def ingest_notion(zip_bytes: bytes, filename: str) -> list[Document]:

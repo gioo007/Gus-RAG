@@ -15,6 +15,6 @@ psycopg2-binary
 sentence-transformers #all-MiniLM-L6-v2 local embedding model
 
 pypdf                 
-beautifulsoup4 #webloader
+trafilatura #webloader
 fonttools
 docx2txt
