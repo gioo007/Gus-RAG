@@ -7,7 +7,7 @@ router = APIRouter()
 
 MAX_HISTORY_MESSAGES = 30  #number of messages to keep in history
 
-@router.post("", response_model=QueryResponse)
+@router.post("/", response_model=QueryResponse)
 async def query(request: QueryRequest):
     session_id = request.session_id or str(uuid.uuid4())
     with chat_history.get_history(session_id) as history:
