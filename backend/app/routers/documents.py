@@ -24,7 +24,7 @@ def store_chunks(chunks: list, source_type: str) -> None:
         raise HTTPException(status_code=500, detail=f"Failed to store embeddings: {e}") from e
 
 
-@router.get("/", response_model=list[DocumentSummary])
+@router.get("", response_model=list[DocumentSummary])
 async def list_documents():
     try:
         return vectorstore.list_documents()
