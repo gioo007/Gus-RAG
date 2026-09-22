@@ -1,14 +1,40 @@
-.env
-.venv
+.env*
+*venv
 
 __pycache__/
 .vscode/
+other-files/
 
-
-#files
+#documents
 *.pdf
 *.docx
 *.txt
 *.sql
+*.zip
 
 !requirements.txt
+#sample files fore tests
+!tests/fixtures/*  
+
+#node frontend
+node_modules
+.next
+out
+build
+
+#logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+#vercel
+.vercel
+
+#typescript
+*.tsbuildinfo
+next-env.d.ts
+
+#system files
+Thumbs.db
+desktop.ini
