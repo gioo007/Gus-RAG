@@ -2,6 +2,7 @@ fastapi
 uvicorn
 python-multipart      #for file uploads (POST /documents)
 pydantic-settings     #for parsing .env files
+pytest
 
 langchain-core
 langchain-community
