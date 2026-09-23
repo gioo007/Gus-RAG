@@ -181,7 +181,7 @@ export function RagDashboard() {
   }
 
   return (
-    <main className="relative flex h-screen min-h-screen flex-row overflow-hidden bg-[#2A0A10] text-[#FBF6EE]">
+    <main className="relative flex h-[100dvh] md:h-screen md:min-h-screen flex-row overflow-hidden bg-[#2A0A10] text-[#FBF6EE]">
       {rightOpen && <div aria-hidden="true" onClick={() => setRightOpen(false)} className="fixed inset-0 z-40 bg-black/50 backdrop-blur-md md:hidden" />}
 
       <header className="absolute inset-x-0 top-0 z-30 flex h-14 items-center justify-end px-4 md:hidden">
@@ -190,7 +190,7 @@ export function RagDashboard() {
 
       <section className="relative z-0 flex min-w-0 flex-1 flex-col bg-[#2A0A10]">
         {rightCollapsed && <button aria-label="Open sources" onClick={() => setRightCollapsed(false)} className="absolute right-4 top-4 z-30 hidden rounded p-1.5 text-[#D8C4B6] hover:bg-white/[0.06] md:block"><PanelRightOpen className="size-4" /></button>}
-        {messages.length > 0 && <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-14 items-center justify-center md:h-12"><span className="font-serif text-lg text-[#D8C4B6]">Gus</span></div>}
+        
         {messages.length > 0 ? (
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-40 pt-16 md:px-10 md:pt-12">
             <div className="mx-auto flex max-w-3xl flex-col gap-6">
