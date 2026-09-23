@@ -1,0 +1,38 @@
+# Version control & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Frontend (Deployed separately on Vercel)
+frontend/
+
+# Tests, Benchmarks & Evaluation
+tests/
+eval/
+.pytest_cache
+pytest.ini
+
+# Documentation & Misc
+other-files/
+README.md
+*.md
+
+# Python cache & build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+*.egg-info/
+
+# Local secrets & environment files
+.env
+.env.*
+*.env
+
+# Docker files
+Dockerfile
+.dockerignore
