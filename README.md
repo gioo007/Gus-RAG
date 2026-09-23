@@ -1,8 +1,6 @@
-# RAG Capstone
+# Gus AI — RAG Capstone
 
 A retrieval-augmented generation (RAG) app built with **FastAPI** and **LangChain** on the backend, and a **Next.js** dashboard on the frontend, answering questions over user-uploaded documents. Embeddings are stored in **pgvector** on a hosted **Neon Postgres** instance, with generation running on **Groq**. This is the capstone project bridging the DeepLearning.AI LangChain short courses ("LLM Application Development" and "Chat With Your Data") into a deployable, production-shaped stack.
-
-> **Status:** Backend v1 is code-complete and fully tested (65 passing tests, everything external mocked). The frontend dashboard's design is done. Currently wiring the UI to the live backend API. Deployment to Render is still ahead. See [Roadmap](#roadmap) below.
 
 ---
 
@@ -20,7 +18,7 @@ A retrieval-augmented generation (RAG) app built with **FastAPI** and **LangChai
 | Config | pydantic-settings (.env) |
 | Frontend | Next.js (App Router) + Tailwind + shadcn/ui, generated via v0 |
 | Testing | pytest, all external services (DB, embedding model, Groq) mocked |
-| Deployment | Render (planned) |
+| Deployment | Render (Backend via Docker) & Vercel (Frontend) |
 
 ---
 
@@ -42,7 +40,7 @@ A retrieval-augmented generation (RAG) app built with **FastAPI** and **LangChai
 
 ## Project Structure
 
-```
+```text
 GUS-RAG/
 ├── backend/
 │   ├── app/
@@ -61,6 +59,7 @@ GUS-RAG/
 │   │   │   └── vectorstore.py       #pgvector store + embeddings
 │   │   └── main.py                  #app entry point, router registration, CORS
 │   ├── .env                         #not committed
+│   ├── Dockerfile                   #production container config
 │   └── requirements.txt
 ├── frontend/
 │   ├── app/
@@ -88,6 +87,7 @@ GUS-RAG/
 │   ├── test_retrieval.py
 │   ├── test_schemas.py
 │   └── test_vectorstore.py
+├── .dockerignore
 ├── .gitignore
 ├── pytest.ini                       #pythonpath = backend, so tests import `app` directly
 └── README.md
@@ -107,17 +107,19 @@ GUS-RAG/
 | POST | `/documents/upload` | Upload a PDF, DOCX, or Notion export (zip); type is auto-detected from the extension |
 | POST | `/documents/web` | Ingest a web page by URL |
 | DELETE | `/documents/{source_name}` | Delete a document and all of its vector chunks |
-| POST | `/query` | Ask a question over ingested documents; accepts an optional `session_id` for conversational memory and an optional `k` (1–10) for how many chunks to retrieve |
+| POST | `/query/` | Ask a question over ingested documents; accepts an optional `session_id` for conversational memory and an optional `k` (1–10) for how many chunks to retrieve |
 
 ---
 
 ## Getting Started
 
 **Prerequisites:**
+
 - Python 3.13+
 - Node.js (for the frontend)
 - A Neon Postgres instance with the `pgvector` extension enabled
 - A Groq API key
+- Docker (optional, for local container testing)
 
 ### Backend
 
@@ -137,7 +139,7 @@ pip install -r requirements.txt
 Run the server from `backend/`:
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8000
 ```
 
 API docs available at: `http://127.0.0.1:8000/docs`
@@ -160,7 +162,13 @@ Create a `.env` file inside `backend/`:
 GROQ_API_KEY=your_groq_api_key
 LLM_MODEL=openai/gpt-oss-120b                          # optional, this is the default
 DATABASE_URL=postgresql://user:password@host/dbname    # Neon connection string, pgvector-enabled
-ALLOWED_ORIGINS=["http://localhost:3000"]
+ALLOWED_ORIGINS=["http://localhost:3000", "https://your-frontend-domain.vercel.app"]
+```
+
+Create a `.env.local` file inside `frontend/`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000              # Replace with Render URL in production
 ```
 
 ---
@@ -179,13 +187,26 @@ No real database, embedding model, or Groq key is needed. `tests/conftest.py` mo
 
 ## Deployment
 
-Target platform is **Render**, per the project roadmap. Deployment config (start command, port binding, environment-variable injection) is not yet set up.
+### Backend (Render)
+
+The FastAPI backend is deployed as a Docker Web Service on **Render**.
+
+- The `Dockerfile` specifically forces the installation of CPU-only PyTorch to significantly reduce the image size and prevent memory bloat.
+- It also pre-downloads the HuggingFace `sentence-transformers/all-MiniLM-L6-v2` embedding model during the build stage. This eliminates cold-start timeouts that would otherwise occur if the model had to be fetched on the first API request.
+- Ensure `DATABASE_URL` and `GROQ_API_KEY` are set in the Render environment dashboard.
+
+### Frontend (Vercel)
+
+The Next.js frontend is deployed to **Vercel**.
+
+- Add the `NEXT_PUBLIC_API_URL` environment variable to your Vercel project settings, pointing it to the live Render backend URL.
+- Ensure the backend's CORS configuration (`ALLOWED_ORIGINS` in `main.py` / Render environment variables) is updated to accept traffic from your live Vercel domain.
 
 ---
 
 ## Roadmap
 
-**v1**
+**V1**
 - [x] FastAPI scaffold — app entrypoint, config, routers, health check
 - [x] Document ingestion + chunking (`RecursiveCharacterTextSplitter`)
 - [x] Embedding generation + pgvector storage
@@ -195,12 +216,14 @@ Target platform is **Render**, per the project roadmap. Deployment config (start
 - [x] Session-scoped conversational memory on `/query`
 - [x] Backend test suite (pytest, 65 tests, CI-ready)
 - [x] v0-generated frontend dashboard design
-- [ ] Wire the frontend dashboard to the live backend API
-- [ ] Deploy to Render
+- [x] Wire the frontend dashboard to the live backend API
+- [x] Deploy to Render (Backend) and Vercel (Frontend)
 
-**v2 (planned)**
-- Upgrade conversational memory to `RunnableWithMessageHistory` + LangGraph checkpointing (v1 ships a simpler session-scoped Postgres history as a stopgap)
-- Agentic behavior via `create_agent` + custom tools
-- Hybrid search (BM25 + vector ensemble retriever)
-- Reranking step between retrieval and generation
-- Retrieval-quality upgrades: MMR, metadata filtering, self-query retrieval, contextual compression
+**V2 (planned)**
+- [ ] Hybrid search (BM25 + vector ensemble retriever)
+- [ ] Reranking step between retrieval and generation
+- [ ] Semantic caching: pgvector-based, exact-match first, then similarity threshold
+- [ ] Upgrade conversational memory to `RunnableWithMessageHistory` + LangGraph checkpointing
+- [ ] Agentic behavior via `create_agent` + custom tools
+- [ ] Retrieval-quality upgrades: MMR, metadata filtering, self-query retrieval, contextual compression, multi-hop retrievals
+- [ ] Eval harness, benchmarking v1 vs. v2 on retrieval precision and faithfulness
