@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backen/requirements.txt .
+COPY backend/requirements.txt .
 
 #1-install CPU-only PyTorch first to save space
 #2-install remaining requirements
