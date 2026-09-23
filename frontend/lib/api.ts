@@ -59,3 +59,48 @@ export async function askQuestion(question: string, sessionId: string, options?:
   if (!response.ok) throw new ApiError(await errorMessageFor(response), response.status)
   return response.json() as Promise<QueryResponse>
 }
+
+// --- Add to bottom of api.ts ---
+
+export type DocumentSummary = { source: string; source_type: string | null; chunk_count: number }
+export type IngestionResponse = { source: string; source_type: string; chunk_count: number; sample_chunk: string | null }
+
+// GET /documents/
+export async function getSources(): Promise<DocumentSummary[]> {
+  const response = await fetch(`${API_URL}/documents/`);
+  if (!response.ok) throw new ApiError(await errorMessageFor(response), response.status);
+  return response.json() as Promise<DocumentSummary[]>;
+}
+
+// POST /documents/upload
+export async function uploadFile(file: File): Promise<IngestionResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await fetch(`${API_URL}/documents/upload`, {
+    method: 'POST',
+    // Do NOT set Content-Type header manually here; fetch sets it automatically with the correct multipart boundary
+    body: formData, 
+  });
+  if (!response.ok) throw new ApiError(await errorMessageFor(response), response.status);
+  return response.json() as Promise<IngestionResponse>;
+}
+
+// POST /documents/web
+export async function addWebUrl(url: string): Promise<IngestionResponse> {
+  const response = await fetch(`${API_URL}/documents/web`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!response.ok) throw new ApiError(await errorMessageFor(response), response.status);
+  return response.json() as Promise<IngestionResponse>;
+}
+
+// DELETE /documents/{source}
+export async function deleteSource(sourceName: string): Promise<void> {
+  const response = await fetch(`${API_URL}/documents/${encodeURIComponent(sourceName)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new ApiError(await errorMessageFor(response), response.status);
+}

@@ -2,14 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, Link2, PanelRightClose, PanelRightOpen, Plus, Upload } from 'lucide-react'
-import { ApiError, askQuestion } from '@/lib/api'
+import { ApiError, askQuestion, getSources, uploadFile, addWebUrl, deleteSource, type SourceInfo } from '@/lib/api'
 
-type Message = { id: string; role: 'user' | 'assistant' | 'error'; content: string }
+type Message = { id: string; role: 'user' | 'assistant' | 'error'; content: string; sources?: SourceInfo[] }
 type Source = { name: string; type: string }
 
-// Reconstructed from a reference "idea bulb" icon: outline bulb + 3-line socket, with a fan of
-// rays over just the top half (not lucide's Lightbulb — that one has no ray variant at all).
-// `lit` fades the rays in/out via opacity so the geometry never reflows, just the transition.
 function LightbulbIcon({ lit, className }: { lit: boolean; className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -35,14 +32,6 @@ function newId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }
 
-// Mock fixture — replaced by a real GET /documents/ fetch in Phase 3. Only name + type are shown;
-// the backend's list endpoint returns chunk_count too, but the product decision is to hide it.
-const initialSources: Source[] = [
-  { name: 'Annual Report 2024.pdf', type: 'pdf' },
-  { name: 'Market Research Notes.docx', type: 'docx' },
-  { name: 'https://company.com/insights', type: 'web' },
-]
-
 const THINK_HARDER_K = 10 // backend's QueryRequest.k allows 1–10; this is its ceiling
 
 // Accepts "example.com/page" as well as full URLs; only http(s) with a real-looking host is allowed.
@@ -63,24 +52,31 @@ function normalizeUrl(value: string) {
 export function RagDashboard() {
   const [query, setQuery] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
-  // Single chat, single session — this id is sent as query.session_id once Phase 2 wires the API.
+  // Single chat, single session
   const [sessionId, setSessionId] = useState(newId)
   // rightOpen drives the mobile drawer; rightCollapsed drives the desktop panel.
   const [rightOpen, setRightOpen] = useState(false)
   const [rightCollapsed, setRightCollapsed] = useState(false)
-  const [sources, setSources] = useState<Source[]>(initialSources)
+  const [sources, setSources] = useState<Source[]>([])
   const [urlInput, setUrlInput] = useState('')
   const [urlError, setUrlError] = useState('')
   const [isAsking, setIsAsking] = useState(false)
   // "Think harder": widens retrieval from the backend's default k to THINK_HARDER_K (its schema max).
-  // A user-level mode, not chat state — it deliberately survives New Chat.
   const [thinkHarder, setThinkHarder] = useState(false)
+  
   const fileInputRef = useRef<HTMLInputElement>(null)
   const urlDialogRef = useRef<HTMLDialogElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  // Tracks the in-flight /query/ request so New Chat (or an unmount) can cancel it — otherwise a
-  // slow response could land after the session's moved on and get appended to the wrong chat.
+  
+  // Tracks the in-flight /query/ request so New Chat (or an unmount) can cancel it.
   const inFlightRef = useRef<AbortController | null>(null)
+
+  // Fetch initial sources from the backend on mount
+  useEffect(() => {
+    getSources()
+      .then((data) => setSources(data.map((d) => ({ name: d.source, type: d.source_type || 'unknown' }))))
+      .catch((err) => console.error('Failed to fetch initial sources:', err))
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -103,7 +99,7 @@ export function RagDashboard() {
 
     try {
       const result = await askQuestion(text, sessionId, { k: thinkHarder ? THINK_HARDER_K : undefined, signal: controller.signal })
-      setMessages((prev) => [...prev, { id: newId(), role: 'assistant', content: result.answer }])
+      setMessages((prev) => [...prev, { id: newId(), role: 'assistant', content: result.answer, sources: result.sources }])
     } catch (error) {
       if (controller.signal.aborted) return // superseded by New Chat / unmount — not a real failure
       const message = error instanceof ApiError ? error.message : 'Something went wrong. Please try again.'
@@ -116,22 +112,26 @@ export function RagDashboard() {
     }
   }
 
-  function startNewChat() {
-    // Product decision: one chat at a time. Starting a new one wipes this session's sources and
-    // history everywhere, not just on screen.
-    // TODO(phase 3/4): before resetting locally, DELETE /documents/{source} for everything in
-    // `sources` (or a bulk-clear endpoint, if we add one) and clear this session's server-side
-    // chat history, so nothing from the old session carries over.
-    // Tab/browser close should do the same, but that can't be done reliably from the client —
-    // beforeunload/pagehide can't guarantee a DELETE request completes, and sendBeacon only
-    // supports POST. That cleanup belongs on the backend (a session TTL/reaper), not here.
+  async function startNewChat() {
     inFlightRef.current?.abort()
     setIsAsking(false)
     setMessages([])
-    setSources([])
     setQuery('')
     setSessionId(newId())
     setRightOpen(false)
+
+    // Capture current sources and clear locally immediately
+    const currentSources = [...sources]
+    setSources([])
+
+    // Clear backend vectors so they don't bleed into the new chat
+    for (const source of currentSources) {
+      try {
+        await deleteSource(source.name)
+      } catch (error) {
+        console.error(`Failed to clear source ${source.name} from backend:`, error)
+      }
+    }
   }
 
   function handleFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
@@ -142,10 +142,15 @@ export function RagDashboard() {
     uploadFiles(files)
   }
 
-  function uploadFiles(files: File[]) {
-    // TODO(phase 3): POST each file to /documents/upload (one file per request), show progress,
-    // append the returned { source, source_type } to `sources` on success
-    console.debug('[gus] files selected:', files.map((file) => file.name))
+  async function uploadFiles(files: File[]) {
+    for (const file of files) {
+      try {
+        const result = await uploadFile(file)
+        setSources((prev) => [...prev, { name: result.source, type: result.source_type }])
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error)
+      }
+    }
   }
 
   function resetUrlDialog() {
@@ -164,9 +169,13 @@ export function RagDashboard() {
     urlDialogRef.current?.close()
   }
 
-  function addUrl(url: string) {
-    // TODO(phase 3): POST { url } to /documents/web, then append the returned source on success
-    console.debug('[gus] url submitted:', url)
+  async function addUrl(url: string) {
+    try {
+      const result = await addWebUrl(url)
+      setSources((prev) => [...prev, { name: result.source, type: result.source_type }])
+    } catch (error) {
+      console.error(`Failed to ingest URL ${url}:`, error)
+    }
   }
 
   return (
@@ -186,7 +195,20 @@ export function RagDashboard() {
               {messages.map((message) => {
                 if (message.role === 'user') return <p key={message.id} className="max-w-[85%] self-end whitespace-pre-wrap break-words rounded-md bg-[#1E0B11] px-4 py-2.5 text-sm leading-6">{message.content}</p>
                 if (message.role === 'error') return <p key={message.id} className="whitespace-pre-wrap break-words text-sm leading-7 text-[#F2A7A7]">{message.content}</p>
-                return <p key={message.id} className="whitespace-pre-wrap break-words text-sm leading-7 text-[#FBF6EE]">{message.content}</p>
+                return (
+                  <div key={message.id} className="flex flex-col gap-2">
+                    <p className="whitespace-pre-wrap break-words text-sm leading-7 text-[#FBF6EE]">{message.content}</p>
+                    {message.sources && message.sources.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {message.sources.map((s, idx) => (
+                          <span key={idx} className="rounded-sm border border-white/[0.08] bg-[#1E0B11] px-2 py-0.5 text-[11px] text-[#D8C4B6]">
+                            {s.source}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
               })}
               {isAsking && <div aria-label="Waiting for a response" className="flex gap-1.5 py-1">{[0, 1, 2].map((i) => <span key={i} style={{ animationDelay: `${i * 0.15}s` }} className="size-1.5 animate-bounce rounded-full bg-[#D8C4B6]/60" />)}</div>}
               <div ref={bottomRef} />
