@@ -1,5 +1,7 @@
 'use client'
 
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, Link2, PanelRightClose, PanelRightOpen, Plus, Upload } from 'lucide-react'
 import { ApiError, askQuestion, getSources, uploadFile, addWebUrl, deleteSource, type SourceInfo } from '@/lib/api'
@@ -197,7 +199,11 @@ export function RagDashboard() {
                 if (message.role === 'error') return <p key={message.id} className="whitespace-pre-wrap break-words text-sm leading-7 text-[#F2A7A7]">{message.content}</p>
                 return (
                   <div key={message.id} className="flex flex-col gap-2">
-                    <p className="whitespace-pre-wrap break-words text-sm leading-7 text-[#FBF6EE]">{message.content}</p>
+                    <div className="prose prose-invert prose-sm max-w-none text-[#FBF6EE] prose-headings:text-[#FBF6EE] prose-a:text-[#D8C4B6] prose-code:text-[#D8C4B6] prose-pre:border prose-pre:border-white/10 prose-pre:bg-[#1E0B11]">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
                     {message.sources && message.sources.length > 0 && (
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {message.sources.map((s, idx) => (
