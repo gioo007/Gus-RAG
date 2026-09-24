@@ -42,6 +42,10 @@ A retrieval-augmented generation (RAG) app built with **FastAPI** and **LangChai
 
 ```text
 GUS-RAG/
+├── .github/
+│   └── workflows/
+│       ├── deploy.yml               #test, then trigger Render deploy on push to main
+│       └── testing.yml              #test-only CI on push/PR to DEV, v1, v2
 ├── backend/
 │   ├── app/
 │   │   ├── core/
@@ -182,6 +186,21 @@ pytest
 ```
 
 No real database, embedding model, or Groq key is needed. `tests/conftest.py` mocks the SQLAlchemy engine, the HuggingFace embeddings, the PGVector store, the psycopg connection, and the Groq client before any app code is imported, so the suite runs in under a second and is safe to drop straight into CI.
+
+---
+
+## CI/CD
+
+Two GitHub Actions workflows live in `.github/workflows/`, split by branch:
+
+| Workflow | Triggers on | Does |
+|---|---|---|
+| `testing.yml` | Push/PR to `DEV`, `PR` to `v1` / `v2` | Runs the pytest suite only — CI gate for in-progress work |
+| `deploy.yml` | Push to `main` | Runs the pytest suite, then (on success) hits the Render deploy hook to ship the backend |
+
+Both jobs check out the repo, set up Python 3.13, install `backend/requirements.txt`, and run `pytest -v`. Since the test suite mocks the DB, embedding model, and Groq client (see [Testing](#testing)), the `GROQ_API_KEY`, `DATABASE_URL`, and `ALLOWED_ORIGINS` env vars passed in are placeholders required only so `pydantic-settings` doesn't fail on missing config — no real credentials are needed for tests to pass.
+
+`deploy.yml`'s `deploy` job depends on `test` passing and calls `RENDER_DEPLOY_HOOK_URL` (a repo secret) to trigger a new Render deployment; Render then rebuilds and redeploys the Docker service directly from `main`. Vercel handles the frontend separately via its own Git integration and isn't part of these workflows.
 
 ---
 
