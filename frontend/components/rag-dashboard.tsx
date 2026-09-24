@@ -2,12 +2,15 @@
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, Link2, PanelRightClose, PanelRightOpen, Plus, Upload } from 'lucide-react'
+import { ArrowUp, Link2, PanelRightClose, PanelRightOpen, Plus, Upload, Loader2, Trash2 } from 'lucide-react'
 import { ApiError, askQuestion, getSources, uploadFile, addWebUrl, deleteSource, type SourceInfo } from '@/lib/api'
 
 type Message = { id: string; role: 'user' | 'assistant' | 'error'; content: string; sources?: SourceInfo[] }
-type Source = { name: string; type: string }
+type Source = { name: string; type: string; isLoading?: boolean }
 
 function LightbulbIcon({ lit, className }: { lit: boolean; className?: string }) {
   return (
@@ -144,14 +147,40 @@ export function RagDashboard() {
     uploadFiles(files)
   }
 
-  async function uploadFiles(files: File[]) {
+async function uploadFiles(files: File[]) {
+    // 1. Instantly add all selected files to the UI state as loading
+    const pendingSources = files.map(file => ({ 
+      name: file.name, 
+      type: 'Uploading...', 
+      isLoading: true 
+    }));
+    setSources((prev) => [...prev, ...pendingSources]);
+
+    // 2. Process the actual uploads sequentially behind the scenes
     for (const file of files) {
       try {
         const result = await uploadFile(file)
-        setSources((prev) => [...prev, { name: result.source, type: result.source_type }])
+        // Update the specific file's state once its upload completes
+        setSources((prev) => 
+          prev.map((s) => s.name === file.name ? { name: result.source, type: result.source_type, isLoading: false } : s)
+        )
       } catch (error) {
         console.error(`Failed to upload ${file.name}:`, error)
+        // Remove the specific file from the UI if its upload fails
+        setSources((prev) => prev.filter((s) => s.name !== file.name))
       }
+    }
+  }
+
+  async function handleRemoveSource(sourceName: string) {
+    const previousSources = [...sources]
+    setSources((prev) => prev.filter((s) => s.name !== sourceName))
+    
+    try {
+      await deleteSource(sourceName)
+    } catch (error) {
+      console.error(`Failed to delete source ${sourceName}:`, error)
+      setSources(previousSources)
     }
   }
 
@@ -200,7 +229,10 @@ export function RagDashboard() {
                 return (
                   <div key={message.id} className="flex flex-col gap-2">
                     <div className="prose prose-invert prose-sm max-w-none text-[#FBF6EE] prose-headings:text-[#FBF6EE] prose-a:text-[#D8C4B6] prose-code:text-[#D8C4B6] prose-pre:border prose-pre:border-white/10 prose-pre:bg-[#1E0B11]">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      <ReactMarkdown 
+                      remarkPlugins={[remarkGfm, remarkMath]}
+                      rehypePlugins={[rehypeKatex]}
+                      >
                         {message.content}
                       </ReactMarkdown>
                     </div>
@@ -232,9 +264,31 @@ export function RagDashboard() {
         <div className="flex h-full w-full flex-col px-5 py-6 md:w-[330px]">
           <div className="flex items-center justify-between"><h2 className="font-serif text-2xl">Sources</h2><button aria-label="Close sources" onClick={() => setRightOpen(false)} className="rounded p-1.5 text-[#D8C4B6] hover:bg-white/[0.06] md:hidden"><PanelRightClose className="size-4" /></button><button aria-label="Collapse sources" onClick={() => setRightCollapsed(true)} className="hidden rounded p-1.5 text-[#D8C4B6] hover:bg-white/[0.06] md:block"><PanelRightClose className="size-4" /></button></div>
           <div className="mt-4 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-            {sources.length === 0
-              ? <p className="text-xs text-[#D8C4B6]/70">No sources yet. Upload a file or add a URL to get started.</p>
-              : sources.map((source) => <div key={source.name} className="shrink-0 border-b border-white/[0.06] pb-3"><p className="truncate text-sm text-[#FBF6EE]">{source.name}</p><p className="mt-1 text-xs text-[#D8C4B6]/70">{source.type}</p></div>)}
+            {sources.length === 0 ? (
+              <p className="text-xs text-[#D8C4B6]/70">No sources yet. Upload a file or add a URL to get started.</p>
+            ) : (
+              sources.map((source) => (
+                <div key={source.name} className="group flex shrink-0 items-center justify-between border-b border-white/[0.06] pb-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-[#FBF6EE]">{source.name}</p>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-[#D8C4B6]/70">
+                      {source.isLoading && <Loader2 className="size-3 animate-spin" />}
+                      {source.type}
+                    </p>
+                  </div>
+                  
+                  {!source.isLoading && (
+                    <button
+                      onClick={() => handleRemoveSource(source.name)}
+                      aria-label={`Delete ${source.name}`}
+                      className="ml-2 rounded p-1.5 text-[#9F7F7E] opacity-0 transition-all duration-200 hover:bg-white/[0.06] hover:text-[#F2A7A7] group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
           </div>
           <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4">
             <button onClick={startNewChat} className="flex flex-col items-center justify-center gap-1 rounded-md bg-[#FBF6EE] px-1 py-2.5 text-center text-[10px] font-bold leading-tight text-[#0B101E] transition-all duration-200 hover:brightness-90"><Plus className="size-4" /> New Chat</button>
