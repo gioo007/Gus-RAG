@@ -77,21 +77,24 @@ def ingest_docx(file_bytes: bytes, filename: str) -> list[Document]:
 
 
 def fetch_bounded(url: str, max_bytes: int = MAX_WEB_CONTENT_BYTES) -> str:
-    with requests.get(url, stream=True, timeout=10, headers={"User-Agent": "Mozilla/5.0"}) as resp:
-        resp.raise_for_status()
+    try:
+        with requests.get(url, stream=True, timeout=10, headers={"User-Agent": "Mozilla/5.0"}) as resp:
+            resp.raise_for_status()
 
-        content_length = resp.headers.get("Content-Length")
-        if content_length and int(content_length) > max_bytes:
-            raise ValueError(f"Page at '{url}' is too large to ingest ({content_length} bytes).")
+            content_length = resp.headers.get("Content-Length")
+            if content_length and int(content_length) > max_bytes:
+                raise ValueError(f"Page at '{url}' is too large to ingest ({content_length} bytes).")
 
-        chunks, total = [], 0
-        for chunk in resp.iter_content(chunk_size=8192):
-            total += len(chunk)
-            if total > max_bytes:
-                raise ValueError(f"Page at '{url}' exceeded the {max_bytes}-byte ingestion limit.")
-            chunks.append(chunk)
+            chunks, total = [], 0
+            for chunk in resp.iter_content(chunk_size=8192):
+                total += len(chunk)
+                if total > max_bytes:
+                    raise ValueError(f"Page at '{url}' exceeded the {max_bytes}-byte ingestion limit.")
+                chunks.append(chunk)
 
-        return b"".join(chunks).decode(resp.encoding or "utf-8", errors="replace")
+            return b"".join(chunks).decode(resp.encoding or "utf-8", errors="replace")
+    except requests.exceptions.RequestException as e:
+        raise ValueError(f"Could not load content from '{url}': {e}") from e
 
 
 def ingest_web(url: str) -> list[Document]:
