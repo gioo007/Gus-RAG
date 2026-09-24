@@ -2,6 +2,7 @@ import os
 import tempfile
 import zipfile
 import trafilatura
+import requests
 from pathlib import Path
 from langchain_community.document_loaders import (
     Docx2txtLoader,
@@ -13,6 +14,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 200
+MAX_WEB_CONTENT_BYTES = 2_000_000
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE,
@@ -74,10 +76,26 @@ def ingest_docx(file_bytes: bytes, filename: str) -> list[Document]:
     return chunk_documents(docs)
 
 
+def fetch_bounded(url: str, max_bytes: int = MAX_WEB_CONTENT_BYTES) -> str:
+    with requests.get(url, stream=True, timeout=10, headers={"User-Agent": "Mozilla/5.0"}) as resp:
+        resp.raise_for_status()
+
+        content_length = resp.headers.get("Content-Length")
+        if content_length and int(content_length) > max_bytes:
+            raise ValueError(f"Page at '{url}' is too large to ingest ({content_length} bytes).")
+
+        chunks, total = [], 0
+        for chunk in resp.iter_content(chunk_size=8192):
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError(f"Page at '{url}' exceeded the {max_bytes}-byte ingestion limit.")
+            chunks.append(chunk)
+
+        return b"".join(chunks).decode(resp.encoding or "utf-8", errors="replace")
+
+
 def ingest_web(url: str) -> list[Document]:
-    downloaded = trafilatura.fetch_url(url)
-    if downloaded is None:
-        raise ValueError(f"Could not load content from '{url}'.")
+    downloaded = fetch_bounded(url)
 
     text = trafilatura.extract(downloaded)
     if not text:
