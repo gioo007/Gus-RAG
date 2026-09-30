@@ -37,7 +37,7 @@ function newId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }
 
-const THINK_HARDER_K = 10 // backend's QueryRequest.k allows 1–10; this is its ceiling
+const THINK_HARDER_VERSION = 'v2' // backend retrieval version override for the "Think harder" mode
 
 // Accepts "example.com/page" as well as full URLs; only http(s) with a real-looking host is allowed.
 // Returns null when invalid. (new URL() alone is too lenient: some engines accept "https://not a url".)
@@ -66,7 +66,7 @@ export function RagDashboard() {
   const [urlInput, setUrlInput] = useState('')
   const [urlError, setUrlError] = useState('')
   const [isAsking, setIsAsking] = useState(false)
-  // "Think harder": widens retrieval from the backend's default k to THINK_HARDER_K (its schema max).
+  // "Think harder": switches retrieval to the v2 pipeline instead of the default v1 flow.
   const [thinkHarder, setThinkHarder] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -103,7 +103,7 @@ export function RagDashboard() {
     inFlightRef.current = controller
 
     try {
-      const result = await askQuestion(text, sessionId, { k: thinkHarder ? THINK_HARDER_K : undefined, signal: controller.signal })
+      const result = await askQuestion(text, sessionId, { version: thinkHarder ? THINK_HARDER_VERSION : undefined, signal: controller.signal })
       setMessages((prev) => [...prev, { id: newId(), role: 'assistant', content: result.answer, sources: result.sources }])
     } catch (error) {
       if (controller.signal.aborted) return // superseded by New Chat / unmount — not a real failure

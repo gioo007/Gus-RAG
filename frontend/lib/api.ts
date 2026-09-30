@@ -37,17 +37,16 @@ async function errorMessageFor(response: Response): Promise<string> {
 }
 
 // Rejects with ApiError for both network failures (status 0) and non-2xx responses.
-// `k` overrides the backend's default top-k retrieval count (schema allows 1–10); omit to let the
-// backend use its own default. Pass `signal` so an in-flight request can be cancelled (e.g. the
-// user starts a new chat).
-export async function askQuestion(question: string, sessionId: string, options?: { k?: number; signal?: AbortSignal }): Promise<QueryResponse> {
-  const { k, signal } = options ?? {}
+// `version` selects the retrieval strategy; omit to let the backend use its default v1 flow.
+// Pass `signal` so an in-flight request can be cancelled (e.g. the user starts a new chat).
+export async function askQuestion(question: string, sessionId: string, options?: { version?: 'v1' | 'v2'; signal?: AbortSignal }): Promise<QueryResponse> {
+  const { version, signal } = options ?? {}
   let response: Response
   try {
     response = await fetch(`${API_URL}/query/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, session_id: sessionId, ...(k ? { k } : {}) }),
+      body: JSON.stringify({ question, session_id: sessionId, ...(version ? { version } : {}) }),
       signal,
     })
   } catch (err) {
