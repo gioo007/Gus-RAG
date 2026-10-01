@@ -35,7 +35,7 @@ def test_query_returns_the_answer_and_deduped_sources_in_relevance_order(client,
         Document(page_content="b", metadata={"source": "a.pdf", "source_type": "pdf"}),
         Document(page_content="c", metadata={"source": "https://example.com", "source_type": "web"})
     ]
-    monkeypatch.setattr(retrieval, "retrieve", lambda question, k: chunks)
+    monkeypatch.setattr(retrieval, "retrieve", lambda question, version: chunks)
     monkeypatch.setattr(generation, "generate", lambda question, chunks, history: "the answer")
 
     response = client.post("/query", json={"question": "what is this about?"})
@@ -51,7 +51,7 @@ def test_query_returns_the_answer_and_deduped_sources_in_relevance_order(client,
 
 def test_query_reuses_the_provided_session_id(client, monkeypatch):
     _patch_history(monkeypatch, FakeHistory())
-    monkeypatch.setattr(retrieval, "retrieve", lambda question, k: [])
+    monkeypatch.setattr(retrieval, "retrieve", lambda question, version: [])
     monkeypatch.setattr(generation, "generate", lambda question, chunks, history: "answer")
 
     response = client.post("/query", json={"question": "q", "session_id": "my-session"})
@@ -62,7 +62,7 @@ def test_query_reuses_the_provided_session_id(client, monkeypatch):
 def test_query_passes_only_the_last_thirty_history_messages_to_generation(client, monkeypatch):
     fake_history = FakeHistory(messages=list(range(40)))
     _patch_history(monkeypatch, fake_history)
-    monkeypatch.setattr(retrieval, "retrieve", lambda question, k: [])
+    monkeypatch.setattr(retrieval, "retrieve", lambda question, version: [])
     captured = {}
 
     def fake_generate(question, chunks, history):
@@ -78,7 +78,7 @@ def test_query_passes_only_the_last_thirty_history_messages_to_generation(client
 def test_query_returns_500_when_retrieval_fails(client, monkeypatch):
     _patch_history(monkeypatch, FakeHistory())
 
-    def boom(question, k):
+    def boom(question, version):
         raise RuntimeError("pgvector is down")
     monkeypatch.setattr(retrieval, "retrieve", boom)
 
@@ -90,7 +90,7 @@ def test_query_returns_500_when_retrieval_fails(client, monkeypatch):
 
 def test_query_returns_500_when_generation_fails(client, monkeypatch):
     _patch_history(monkeypatch, FakeHistory())
-    monkeypatch.setattr(retrieval, "retrieve", lambda question, k: [])
+    monkeypatch.setattr(retrieval, "retrieve", lambda question, version: [])
 
     def boom(question, chunks, history):
         raise RuntimeError("groq rate limited")
@@ -102,22 +102,16 @@ def test_query_returns_500_when_generation_fails(client, monkeypatch):
     assert "groq rate limited" in response.json()["detail"]
 
 
-def test_query_rejects_k_outside_the_allowed_range(client):
-    response = client.post("/query", json={"question": "q", "k": 25})
-
-    assert response.status_code == 422
-
-
-def test_query_defaults_k_to_four(client, monkeypatch):
+def test_query_defaults_version_to_v1(client, monkeypatch):
     _patch_history(monkeypatch, FakeHistory())
     captured = {}
 
-    def fake_retrieve(question, k):
-        captured["k"] = k
+    def fake_retrieve(question, version):
+        captured["version"] = version
         return []
     monkeypatch.setattr(retrieval, "retrieve", fake_retrieve)
     monkeypatch.setattr(generation, "generate", lambda question, chunks, history: "answer")
 
     client.post("/query", json={"question": "q"})
 
-    assert captured["k"] == 4
+    assert captured["version"] == "v1"

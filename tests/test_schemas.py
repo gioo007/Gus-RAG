@@ -37,22 +37,21 @@ def test_ingestion_response_accepts_every_supported_source_type(source_type):
     assert response.source_type == source_type
 
 
-def test_query_request_defaults_k_to_four_and_session_id_to_none():
+def test_query_request_defaults_version_to_v1_and_session_id_to_none():
     request = QueryRequest(question="what is this?")
-    assert request.k == 4
+    assert request.version == "v1"
     assert request.session_id is None
 
 
-@pytest.mark.parametrize("k", [0, -1, 11, 100])
-def test_query_request_rejects_k_outside_one_to_ten(k):
+@pytest.mark.parametrize("version", ["v1", "v2"])
+def test_query_request_accepts_supported_versions(version):
+    request = QueryRequest(question="q", version=version)
+    assert request.version == version
+
+
+def test_query_request_rejects_an_unknown_version():
     with pytest.raises(ValidationError):
-        QueryRequest(question="q", k=k)
-
-
-@pytest.mark.parametrize("k", [1, 5, 10])
-def test_query_request_accepts_k_within_bounds(k):
-    request = QueryRequest(question="q", k=k)
-    assert request.k == k
+        QueryRequest(question="q", version="v3") #type: ignore (schema validation should fail)
 
 
 def test_query_response_holds_answer_sources_and_session_id():
