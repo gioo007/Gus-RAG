@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
     HF_TOKEN: str = ""
     COHERE_API_KEY: str = ""
+    VOYAGE_API_KEY: str = ""
+    VOYAGE_MODEL: str = "voyage-4-lite"
+    INGESTION_BATCH_SIZE: int = 50
 
 
     #v2 retrieval pipeline

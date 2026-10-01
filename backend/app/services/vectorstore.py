@@ -1,6 +1,7 @@
 from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_voyageai import VoyageAIEmbeddings
 from langchain_postgres import PGVector
+from pydantic import SecretStr
 from sqlalchemy import create_engine, text
 from app.core.config import settings
 
@@ -21,9 +22,9 @@ engine = create_engine(
     pool_recycle=300,
 )
 
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    encode_kwargs={"normalize_embeddings": True},
+embeddings = VoyageAIEmbeddings(
+    model=settings.VOYAGE_MODEL, 
+    api_key=SecretStr(settings.VOYAGE_API_KEY)
 )
 
 vector_store = PGVector(
@@ -39,7 +40,15 @@ def add_documents(chunks: list[Document]) -> list[str]:
     #returns generated row ids
     if not chunks:
         return []
-    return vector_store.add_documents(chunks)
+
+    ids: list[str] = []
+    batch_size = settings.INGESTION_BATCH_SIZE
+    
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i:i + batch_size]
+        ids.extend(vector_store.add_documents(batch))
+
+    return ids
 
 
 def ensure_indexes() -> None:
