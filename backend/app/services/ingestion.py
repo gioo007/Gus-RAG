@@ -14,7 +14,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 200
-MAX_WEB_CONTENT_BYTES = 2_000_000
+MAX_WEB_CONTENT_BYTES = 10_000_000
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE,

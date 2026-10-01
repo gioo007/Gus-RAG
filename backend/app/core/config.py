@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     COHERE_API_KEY: str = ""
     VOYAGE_API_KEY: str = ""
     VOYAGE_MODEL: str = "voyage-4-lite"
-    INGESTION_BATCH_SIZE: int = 50
+    INGESTION_BATCH_SIZE: int = 100
 
 
     #v2 retrieval pipeline
