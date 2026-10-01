@@ -96,3 +96,21 @@ def list_documents() -> list[dict]:
     with engine.connect() as conn:
         rows = conn.execute(query, {"collection_name": COLLECTION_NAME}).mappings().all()
     return [dict(row) for row in rows]
+
+
+def get_all_documents() -> list[Document]:
+    #if the doc count grows into the thousands, this should move to a cached/paginated read instead of a full scan.
+    query = text(
+        """
+        SELECT e.document AS content, e.cmetadata AS metadata
+        FROM langchain_pg_embedding e
+        JOIN langchain_pg_collection c ON e.collection_id = c.uuid
+        WHERE c.name = :collection_name
+        """
+    )
+    with engine.connect() as conn:
+        rows = conn.execute(query, {"collection_name": COLLECTION_NAME}).mappings().all()
+    return [
+        Document(page_content=row["content"], metadata=dict(row["metadata"] or {}))
+        for row in rows
+    ]
