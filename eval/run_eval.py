@@ -29,11 +29,11 @@ from ragas.run_config import RunConfig
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
-def build_rows(k: int) -> list[dict]:
+def build_rows(label: str) -> list[dict]:
     rows = []
     for item in EVAL_QUESTIONS:
         question = item["question"]
-        chunks = retrieval.retrieve(question, k=k)
+        chunks = retrieval.retrieve(question, version=label)
         contexts = [chunk.page_content for chunk in chunks]
         answer = generation.generate(question, chunks)
         rows.append({
@@ -45,7 +45,7 @@ def build_rows(k: int) -> list[dict]:
     return rows
 
 def run(label: str, k: int) -> None:
-    rows = build_rows(k)
+    rows = build_rows(label)
     dataset = EvaluationDataset.from_list(rows)
 
     #using same model as judge is known to have a bias

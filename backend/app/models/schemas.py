@@ -21,7 +21,7 @@ class IngestionResponse(BaseModel):
 
 class QueryRequest(BaseModel):
     question: str
-    k: int = Field(default=4, gt=0, le=10)
+    version: Literal["v1", "v2"] = "v1"
     session_id: str | None = None
  
  

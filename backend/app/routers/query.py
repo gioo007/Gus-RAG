@@ -14,7 +14,7 @@ async def query(request: QueryRequest):
         recent = history.messages[-MAX_HISTORY_MESSAGES:]
 
         try:
-            chunks = retrieval.retrieve(request.question, k=request.k)
+            chunks = retrieval.retrieve(request.question, request.version)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to retrieve documents: {e}") from e
 
