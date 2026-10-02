@@ -2,7 +2,8 @@
 #   python eval/run_eval.py v1 --k 4
 #   python eval/run_eval.py v2 --k 4
 
-#must run to 
+#type ignores to silence pylance resolving issues (all code and imports run fine)
+
 import sys
 from unittest.mock import MagicMock
 sys.modules["langchain_community.chat_models.vertexai"] = MagicMock()
@@ -29,11 +30,11 @@ from ragas.run_config import RunConfig
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
-def build_rows(label: str) -> list[dict]:
+def build_rows(label: str, k: int) -> list[dict]:
     rows = []
     for item in EVAL_QUESTIONS:
         question = item["question"]
-        chunks = retrieval.retrieve(question, version=label)
+        chunks = retrieval.retrieve(question, version=label, k=k)
         contexts = [chunk.page_content for chunk in chunks]
         answer = generation.generate(question, chunks)
         rows.append({
@@ -45,20 +46,20 @@ def build_rows(label: str) -> list[dict]:
     return rows
 
 def run(label: str, k: int) -> None:
-    rows = build_rows(label)
+    rows = build_rows(label, k)
     dataset = EvaluationDataset.from_list(rows)
 
     #using same model as judge is known to have a bias
     api_key = settings.GROQ_API_KEY
-    judge = ChatGroq(temperature=0, model="openai/gpt-oss-120b", api_key=api_key)
+    judge = ChatGroq(temperature=0, model=settings.LLM_MODEL, api_key=api_key)
     evaluator_llm = LangchainLLMWrapper(judge)
 
     result = evaluate(
         dataset=dataset,
 
         metrics=[Faithfulness(llm=evaluator_llm), LLMContextPrecisionWithReference(llm=evaluator_llm)], #type: ignore
-        #metrics = [LLMContextPrecisionWithReference(llm=evaluator_llm)],   when doing micro precision runs
-        #metrics = [Faithfulness(llm=evaluator_llm)],                       when doing micro faithfulness runs
+        #metrics = [LLMContextPrecisionWithReference(llm=evaluator_llm)],   #when doing micro precision runs
+        #metrics = [Faithfulness(llm=evaluator_llm)],                       #when doing micro faithfulness runs
 
         llm=evaluator_llm,
         run_config=RunConfig(max_workers=1, max_retries=5, timeout=300)
