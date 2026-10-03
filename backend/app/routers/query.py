@@ -1,11 +1,12 @@
+import uuid
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import QueryRequest, QueryResponse, SourceInfo
 from app.services import generation, retrieval, chat_history
-import uuid
 
 router = APIRouter()
 
 MAX_HISTORY_MESSAGES = 30  #number of messages to keep in history
+
 
 @router.post("/", response_model=QueryResponse)
 async def query(request: QueryRequest):
@@ -14,7 +15,7 @@ async def query(request: QueryRequest):
         recent = history.messages[-MAX_HISTORY_MESSAGES:]
 
         try:
-            chunks = retrieval.retrieve(request.question, request.version)
+            chunks = retrieval.retrieve(request.question, request.version, session_id=session_id)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to retrieve documents: {e}") from e
 

@@ -9,6 +9,7 @@ v2: self-query (natural-language metadata filtering) + MMR as the dense retrieve
 from __future__ import annotations
 
 import time
+from collections import OrderedDict
 from typing import Any
 
 from langchain_classic.chains.query_constructor.schema import AttributeInfo
@@ -28,19 +29,22 @@ from app.core.config import settings
 from app.services.vectorstore import get_all_documents, vector_store
 
 
-BM25_CACHE_TTL_SECONDS = 300  #rebuild the BM25 index at most every 5 minutes
+BM25_CACHE_TTL_SECONDS = 600  #rebuild the BM25 index at most every 5 minutes
+BM25_CACHE_MAX_SESSIONS = 20  #evict the LRU sessions' indexes past this many cached
 
 METADATA_FIELD_INFO = [
     AttributeInfo(
         name="source",
         description="The filename or source URL the chunk was ingested from.",
-        type="string",
+        type="string"
     ),
     AttributeInfo(
         name="source_type",
         description="The type of the source document: 'pdf', 'docx', 'web', or 'notion'.",
-        type="string",
-    ),
+        type="string"
+    )
+    #didnt add session_id to prevent llm from messing with it, its set in the vector retriever func
+    #preventing any type of query injections
 ]
 
 DECOMPOSITION_PROMPT = PromptTemplate.from_template(
@@ -61,15 +65,25 @@ Question: {question}"""
 
 # Lazily built/loaded so a deployment running strategy="v1" never pays for these.
 retrieval_llm: ChatGroq | None = None
-bm25_cache: dict[str, Any] = {"retriever": None, "built_at": 0.0}
+#distinct cache entry per every session_id, ordereddict enforces lru eviction
+bm25_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
 
-def invalidate_bm25_cache() -> None:
+def touch_bm25_cache(cache_key: str) -> None:
+    #mark cache_key as most-recently-used and evict the oldest entries past the cap
+    bm25_cache.move_to_end(cache_key)
+    while len(bm25_cache) > BM25_CACHE_MAX_SESSIONS:
+        bm25_cache.popitem(last=False)
+
+
+def invalidate_bm25_cache(session_id: str | None = None) -> None:
     """Call this after ingesting or deleting documents so the next v2 query rebuilds the
     BM25 index immediately instead of waiting out the TTL. Not wired in automatically --
     that hook belongs in the documents router (add a call here to add_documents/delete_by_source's
     callers if you want instant invalidation instead of the TTL)."""
-    bm25_cache["retriever"] = None
+    cache_key = session_id or "__all__"
+    bm25_cache[cache_key] = {"retriever": None, "built_at": 0.0}
+    touch_bm25_cache(cache_key)
 
 
 def get_retrieval_llm() -> ChatGroq:
@@ -80,25 +94,29 @@ def get_retrieval_llm() -> ChatGroq:
     return retrieval_llm
 
 
-def get_bm25_retriever(k: int) -> BM25Retriever | None:
+def get_bm25_retriever(k: int, session_id: str | None = None) -> BM25Retriever | None:
+    cache_key = session_id or "__all__"
+    cache = bm25_cache.setdefault(cache_key, {"retriever": None, "built_at": 0.0})
+    touch_bm25_cache(cache_key)
     now = time.monotonic()
-    stale = (
-        bm25_cache["retriever"] is None
-        or (now - bm25_cache["built_at"]) > BM25_CACHE_TTL_SECONDS
-    )
+    stale = (cache["retriever"] is None or (now - cache["built_at"]) > BM25_CACHE_TTL_SECONDS)
     if stale:
-        docs = get_all_documents()
-        bm25_cache["retriever"] = BM25Retriever.from_documents(docs) if docs else None
-        bm25_cache["built_at"] = now
+        docs = get_all_documents(session_id=session_id)
+        cache["retriever"] = BM25Retriever.from_documents(docs) if docs else None
+        cache["built_at"] = now
 
-    retriever = bm25_cache["retriever"]
+    retriever = cache["retriever"]
     if retriever is not None:
         retriever.k = k
     return retriever
 
 
-def build_vector_retriever(fetch_k: int) -> BaseRetriever:
+def build_vector_retriever(fetch_k: int, session_id: str | None = None) -> BaseRetriever:
     #metadata filtering + mmr in one retriever
+    search_kwargs: dict[str, Any] = {"k": fetch_k}
+    if session_id is not None:
+        search_kwargs["filter"] = {"session_id": session_id}
+
     return SelfQueryRetriever.from_llm(
         llm=get_retrieval_llm(),
         vectorstore=vector_store,
@@ -106,19 +124,19 @@ def build_vector_retriever(fetch_k: int) -> BaseRetriever:
         metadata_field_info=METADATA_FIELD_INFO,
         structured_query_translator=PGVectorTranslator(),
         search_type="mmr",
-        search_kwargs={"k": fetch_k},
+        search_kwargs=search_kwargs
     )
 
 
-def build_hybrid_retriever(fetch_k: int) -> BaseRetriever:
-    vector_side = build_vector_retriever(fetch_k)
-    bm25_side = get_bm25_retriever(fetch_k)
+def build_hybrid_retriever(fetch_k: int, session_id: str | None = None) -> BaseRetriever:
+    vector_side = build_vector_retriever(fetch_k, session_id=session_id)
+    bm25_side = get_bm25_retriever(fetch_k, session_id=session_id)
     if bm25_side is None:
         #no documents ingested yet (or the corpus fetch came back empty) -- fall back to dense-only
         return vector_side
     return EnsembleRetriever(
         retrievers=[vector_side, bm25_side],
-        weights=[1 - settings.BM25_WEIGHT, settings.BM25_WEIGHT],
+        weights=[1 - settings.BM25_WEIGHT, settings.BM25_WEIGHT]
     )
 
 
@@ -161,27 +179,34 @@ def compress(question: str, docs: list[Document]) -> list[Document]:
     return list(compressed) or docs
 
 
-def retrieve_v1(question: str, k: int) -> list[Document]:
+def retrieve_v1(question: str, k: int, session_id: str | None = None) -> list[Document]:
     #plain top-k similarity search -- the eval harness baseline, unchanged
-    retriever = vector_store.as_retriever(search_kwargs={"k": k})
+    search_kwargs: dict[str, Any] = {"k": k}
+    if session_id is not None:
+        search_kwargs["filter"] = {"session_id": session_id}
+    retriever = vector_store.as_retriever(search_kwargs=search_kwargs)
     return retriever.invoke(question)
 
 
-def retrieve_v2(question: str, k: int) -> list[Document]:
+def retrieve_v2(question: str, k: int, session_id: str | None = None) -> list[Document]:
     fetch_k = k * settings.RETRIEVAL_FETCH_K_MULTIPLIER
     sub_questions = decompose_question(question)
-    retriever = build_hybrid_retriever(fetch_k)
+    retriever = build_hybrid_retriever(fetch_k, session_id=session_id)
 
     candidates: list[Document] = []
     for sub_question in sub_questions:
         candidates.extend(retriever.invoke(sub_question))
+
+    if session_id is not None:
+        #recheck file's session id regardless of which retriever it came from (just in case)
+        candidates = [doc for doc in candidates if doc.metadata.get("session_id") == session_id]
 
     deduped = dedupe(candidates)
     reranked = rerank(question, deduped, top_k=k)
     return compress(question, reranked)
 
 
-def retrieve(question: str, version: str = "v1", k: int | None = None) -> list[Document]:
+def retrieve(question: str, version: str = "v1", k: int | None = None, session_id: str | None = None) -> list[Document]:
 
     #this lets the frontend call `retrieve(question, "v2")` while preserving
     #the ability of eval harness to try different k's with v2
@@ -190,5 +215,5 @@ def retrieve(question: str, version: str = "v1", k: int | None = None) -> list[D
     effective_k = k if k is not None else settings.DEFAULT_K
 
     if strategy == "v2":
-        return retrieve_v2(question, effective_k)
-    return retrieve_v1(question, effective_k)
+        return retrieve_v2(question, effective_k, session_id=session_id)
+    return retrieve_v1(question, effective_k, session_id=session_id)

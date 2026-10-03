@@ -78,10 +78,10 @@ export function RagDashboard() {
 
   // Fetch initial sources from the backend on mount
   useEffect(() => {
-    getSources()
+    getSources(sessionId)
       .then((data) => setSources(data.map((d) => ({ name: d.source, type: d.source_type || 'unknown' }))))
       .catch((err) => console.error('Failed to fetch initial sources:', err))
-  }, [])
+  }, [sessionId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -132,7 +132,7 @@ export function RagDashboard() {
     // Clear backend vectors so they don't bleed into the new chat
     for (const source of currentSources) {
       try {
-        await deleteSource(source.name)
+        await deleteSource(source.name, sessionId)
       } catch (error) {
         console.error(`Failed to clear source ${source.name} from backend:`, error)
       }
@@ -159,7 +159,7 @@ async function uploadFiles(files: File[]) {
     // 2. Process the actual uploads sequentially behind the scenes
     for (const file of files) {
       try {
-        const result = await uploadFile(file)
+        const result = await uploadFile(file, sessionId)
         // Update the specific file's state once its upload completes
         setSources((prev) => 
           prev.map((s) => s.name === file.name ? { name: result.source, type: result.source_type, isLoading: false } : s)
@@ -177,7 +177,7 @@ async function uploadFiles(files: File[]) {
     setSources((prev) => prev.filter((s) => s.name !== sourceName))
     
     try {
-      await deleteSource(sourceName)
+      await deleteSource(sourceName, sessionId)
     } catch (error) {
       console.error(`Failed to delete source ${sourceName}:`, error)
       setSources(previousSources)
@@ -196,13 +196,13 @@ async function uploadFiles(files: File[]) {
       setUrlError('Enter a valid web address, e.g. https://example.com/page')
       return
     }
-    addUrl(url)
+    void addUrl(url)
     urlDialogRef.current?.close()
   }
 
   async function addUrl(url: string) {
     try {
-      const result = await addWebUrl(url)
+      const result = await addWebUrl(url, sessionId)
       setSources((prev) => [...prev, { name: result.source, type: result.source_type }])
     } catch (error) {
       console.error(`Failed to ingest URL ${url}:`, error)
