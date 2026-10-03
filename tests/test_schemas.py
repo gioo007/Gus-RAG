@@ -33,7 +33,7 @@ def test_ingestion_response_rejects_an_unknown_source_type():
 
 @pytest.mark.parametrize("source_type", ["pdf", "docx", "web", "notion"])
 def test_ingestion_response_accepts_every_supported_source_type(source_type):
-    response = IngestionResponse(source="x", source_type=source_type, chunk_count=1)
+    response = IngestionResponse(source="x", source_type=source_type, chunk_count=1, session_id="abc")
     assert response.source_type == source_type
 
 
