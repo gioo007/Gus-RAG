@@ -7,7 +7,6 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "openai/gpt-oss-120b"
     DATABASE_URL: str = ""
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
-    HF_TOKEN: str = ""
     COHERE_API_KEY: str = ""
     VOYAGE_API_KEY: str = ""
     VOYAGE_MODEL: str = "voyage-4-lite"
