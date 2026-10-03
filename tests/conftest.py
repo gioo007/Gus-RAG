@@ -23,6 +23,9 @@ patch("langchain_postgres.PGVector", return_value=MagicMock(name="vector_store")
 patch("psycopg.connect", return_value=MagicMock(name="psycopg_connection")).start()
 patch("langchain_postgres.PostgresChatMessageHistory.create_tables").start()
 patch("langchain_groq.ChatGroq", return_value=MagicMock(name="llm")).start()
+# tool-calling tests patch `.bind_tools()` on the mocked LLM instance directly,
+# so the base class definition remains safe to import in CI without a real Groq call.
+patch("langchain_groq.ChatGroq.bind_tools", return_value=MagicMock(name="tool_bound_llm")).start()
 
 # engine, embeddings, vector_store, and llm
 # are all mocks, and no service module will try to reach a real DB, model, or API at import time.

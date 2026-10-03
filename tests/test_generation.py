@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+﻿from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from langchain_core.documents import Document
@@ -47,3 +47,39 @@ def test_generate_coerces_non_string_content_to_a_string(monkeypatch):
     answer = generation.generate("q", [])
 
     assert answer == "123"
+
+
+def test_run_agent_executes_retrieval_tool_and_returns_answer_and_sources(monkeypatch):
+    mock_llm = MagicMock()
+    mock_model = MagicMock()
+    mock_model.invoke.side_effect = [
+        SimpleNamespace(tool_calls=[{
+            "id": "call_123",
+            "name": "retrieve_documents",
+            "args": {"question": "What is the capital of France?", "session_id": "sess-1"},
+        }], content=""),
+        SimpleNamespace(content="Paris."),
+    ]
+    mock_llm.bind_tools.return_value = mock_model
+    monkeypatch.setattr(generation, "llm", mock_llm)
+    monkeypatch.setattr(
+        generation.retrieval,
+        "retrieve",
+        lambda question, version, session_id=None: [
+            Document(
+                page_content="Paris is the capital of France.",
+                metadata={"source": "wiki.pdf", "source_type": "pdf"},
+            ),
+            Document(
+                page_content="Paris is the capital of France.",
+                metadata={"source": "wiki.pdf", "source_type": "pdf"},
+            ),
+        ],
+    )
+
+    result = generation.run_agent("What is the capital of France?", history=[], session_id="sess-1")
+
+    assert result["answer"] == "Paris."
+    assert result["sources"] == [{"source": "wiki.pdf", "source_type": "pdf"}]
+    assert mock_llm.bind_tools.call_count == 1
+    assert mock_model.invoke.call_count == 2
