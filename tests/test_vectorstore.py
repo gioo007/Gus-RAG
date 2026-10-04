@@ -49,16 +49,21 @@ def _connection_from(context_manager_mock):
     return context_manager_mock.__enter__.return_value
 
 
-def test_ensure_indexes_creates_the_composite_index(monkeypatch):
+def test_ensure_indexes_creates_the_composite_indexes(monkeypatch):
     mock_engine = MagicMock()
     monkeypatch.setattr(vectorstore, "engine", mock_engine)
 
     vectorstore.ensure_indexes()
 
     conn = _connection_from(mock_engine.begin.return_value)
-    executed_sql = str(conn.execute.call_args[0][0])
-    assert "CREATE INDEX IF NOT EXISTS idx_embedding_collection_source" in executed_sql
-    assert "cmetadata ->> 'source'" in executed_sql
+    executed_sql = [str(call.args[0]) for call in conn.execute.call_args_list]
+    source_sql = next(sql for sql in executed_sql if "session_id" not in sql)
+    session_sql = next(sql for sql in executed_sql if "session_id" in sql)
+
+    assert "CREATE INDEX IF NOT EXISTS idx_embedding_collection_source" in source_sql
+    assert "cmetadata ->> 'source'" in source_sql
+    assert "CREATE INDEX IF NOT EXISTS idx_embedding_collection_session" in session_sql
+    assert "cmetadata ->> 'session_id'" in session_sql
 
 
 def test_delete_by_source_returns_deleted_count_and_collection_id(monkeypatch):
@@ -89,12 +94,24 @@ def test_delete_by_source_returns_zero_and_none_when_nothing_matches(monkeypatch
 def test_list_documents_returns_rows_as_plain_dicts(monkeypatch):
     mock_engine = MagicMock()
     conn = _connection_from(mock_engine.connect.return_value)
-    fake_row = {"source": "a.pdf", "source_type": "pdf", "chunk_count": 3}
+    fake_row = {"source": "a.pdf", "source_type": "pdf", "session_id": "user-123", "chunk_count": 3}
     conn.execute.return_value.mappings.return_value.all.return_value = [fake_row]
     monkeypatch.setattr(vectorstore, "engine", mock_engine)
 
-    result = vectorstore.list_documents()
+    result = vectorstore.list_documents(session_id="user-123")
 
     assert result == [fake_row]
+    args = conn.execute.call_args[0]
+    assert args[1] == {"collection_name": vectorstore.COLLECTION_NAME, "session_id": "user-123"}
+
+
+def test_list_documents_omits_session_filter_when_not_provided(monkeypatch):
+    mock_engine = MagicMock()
+    conn = _connection_from(mock_engine.connect.return_value)
+    conn.execute.return_value.mappings.return_value.all.return_value = []
+    monkeypatch.setattr(vectorstore, "engine", mock_engine)
+
+    vectorstore.list_documents()
+
     args = conn.execute.call_args[0]
     assert args[1] == {"collection_name": vectorstore.COLLECTION_NAME}

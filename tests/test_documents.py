@@ -1,11 +1,11 @@
+import uuid
 from langchain_core.documents import Document
-
 from app.services import ingestion, vectorstore
 
 
 def test_list_documents_returns_vectorstore_summaries(client, monkeypatch):
-    fake_rows = [{"source": "a.pdf", "source_type": "pdf", "chunk_count": 3}]
-    monkeypatch.setattr(vectorstore, "list_documents", lambda: fake_rows)
+    fake_rows = [{"source": "a.pdf", "source_type": "pdf", "session_id": None, "chunk_count": 3}]
+    monkeypatch.setattr(vectorstore, "list_documents", lambda session_id=None: fake_rows)
 
     response = client.get("/documents/")
 
@@ -14,7 +14,7 @@ def test_list_documents_returns_vectorstore_summaries(client, monkeypatch):
 
 
 def test_list_documents_returns_500_on_db_failure(client, monkeypatch):
-    def boom():
+    def boom(session_id=None):
         raise RuntimeError("connection lost")
     monkeypatch.setattr(vectorstore, "list_documents", boom)
 
@@ -32,6 +32,7 @@ def test_upload_pdf_dispatches_to_ingest_pdf_and_stores_chunks(client, monkeypat
 
     response = client.post(
         "/documents/upload",
+        data={"session_id": "user-123"},
         files={"file": ("test.pdf", b"%PDF-1.4 fake", "application/pdf")}
     )
 
@@ -41,9 +42,45 @@ def test_upload_pdf_dispatches_to_ingest_pdf_and_stores_chunks(client, monkeypat
         "source": "test.pdf",
         "source_type": "pdf",
         "chunk_count": 1,
-        "sample_chunk": "hello world"
+        "sample_chunk": "hello world",
+        "session_id": "user-123"
     }
     assert stored["chunks"][0].metadata["source_type"] == "pdf"
+    assert stored["chunks"][0].metadata["session_id"] == "user-123"
+
+
+def test_upload_generates_a_session_id_when_omitted(client, monkeypatch):
+    fake_chunks = [Document(page_content="hello world", metadata={"source": "test.pdf"})]
+    monkeypatch.setattr(ingestion, "ingest_pdf", lambda data, name: fake_chunks)
+    stored = {}
+    monkeypatch.setattr(vectorstore, "add_documents", lambda chunks: stored.setdefault("chunks", chunks))
+
+    response = client.post(
+        "/documents/upload",
+        files={"file": ("test.pdf", b"%PDF-1.4 fake", "application/pdf")}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    uuid.UUID(body["session_id"]) 
+    assert stored["chunks"][0].metadata["session_id"] == body["session_id"]
+
+
+def test_list_documents_filters_by_session_id(client, monkeypatch):
+    fake_rows = [{"source": "a.pdf", "source_type": "pdf", "session_id": "user-123", "chunk_count": 3}]
+    captured = {}
+
+    def fake_list_documents(session_id=None):
+        captured["session_id"] = session_id
+        return fake_rows
+
+    monkeypatch.setattr(vectorstore, "list_documents", fake_list_documents)
+
+    response = client.get("/documents/?session_id=user-123")
+
+    assert response.status_code == 200
+    assert response.json() == fake_rows
+    assert captured["session_id"] == "user-123"
 
 
 def test_upload_docx_dispatches_to_ingest_docx(client, monkeypatch):
@@ -53,11 +90,14 @@ def test_upload_docx_dispatches_to_ingest_docx(client, monkeypatch):
 
     response = client.post(
         "/documents/upload",
+        data={"session_id": "docx-user"},
         files={"file": ("notes.docx", b"fake docx bytes", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
     )
 
     assert response.status_code == 200
-    assert response.json()["source_type"] == "docx"
+    body = response.json()
+    assert body["source_type"] == "docx"
+    assert body["session_id"] == "docx-user"
 
 
 def test_upload_zip_dispatches_to_ingest_notion(client, monkeypatch):
@@ -67,11 +107,14 @@ def test_upload_zip_dispatches_to_ingest_notion(client, monkeypatch):
 
     response = client.post(
         "/documents/upload",
+        data={"session_id": "notion-user"},
         files={"file": ("export.zip", b"PK fake zip bytes", "application/zip")}
     )
 
     assert response.status_code == 200
-    assert response.json()["source_type"] == "notion"
+    body = response.json()
+    assert body["source_type"] == "notion"
+    assert body["session_id"] == "notion-user"
 
 
 def test_upload_rejects_an_unsupported_extension(client):
@@ -122,13 +165,28 @@ def test_ingest_web_page_success(client, monkeypatch):
     monkeypatch.setattr(ingestion, "ingest_web", lambda url: fake_chunks)
     monkeypatch.setattr(vectorstore, "add_documents", lambda chunks: None)
 
-    response = client.post("/documents/web", json={"url": "https://example.com/docs"})
+    response = client.post("/documents/web", json={"url": "https://example.com/docs", "session_id": "web-user"})
 
     assert response.status_code == 200
     body = response.json()
     assert body["source"] == "https://example.com/docs"
     assert body["source_type"] == "web"
     assert body["chunk_count"] == 1
+    assert body["session_id"] == "web-user"
+
+
+def test_ingest_web_page_generates_a_session_id_when_omitted(client, monkeypatch):
+    fake_chunks = [Document(page_content="scraped page text")]
+    monkeypatch.setattr(ingestion, "ingest_web", lambda url: fake_chunks)
+    stored = {}
+    monkeypatch.setattr(vectorstore, "add_documents", lambda chunks: stored.setdefault("chunks", chunks))
+
+    response = client.post("/documents/web", json={"url": "https://example.com/docs"})
+
+    assert response.status_code == 200
+    body = response.json()
+    uuid.UUID(body["session_id"])  # a session id was generated since none was passed
+    assert stored["chunks"][0].metadata["session_id"] == body["session_id"]
 
 
 def test_ingest_web_page_rejects_an_invalid_url(client):
@@ -148,23 +206,27 @@ def test_ingest_web_page_returns_422_when_the_page_has_no_content(client, monkey
 
 
 def test_delete_document_by_name_success(client, monkeypatch):
-    monkeypatch.setattr(
-        vectorstore, "delete_by_source",
-        lambda source_name: {"deleted_count": 3, "collection_id": "abc-123"}
-    )
+    captured = {}
 
-    response = client.delete("/documents/report.pdf")
+    def fake_delete(source_name, session_id=None):
+        captured["session_id"] = session_id
+        return {"deleted_count": 3, "collection_id": "abc-123"}
+
+    monkeypatch.setattr(vectorstore, "delete_by_source", fake_delete)
+
+    response = client.delete("/documents/report.pdf?session_id=session-42")
 
     assert response.status_code == 200
     body = response.json()
     assert body["collection_id"] == "abc-123"
     assert "3 vector chunk" in body["detail"]
+    assert captured["session_id"] == "session-42"
 
 
 def test_delete_document_by_name_returns_404_when_nothing_matches(client, monkeypatch):
     monkeypatch.setattr(
         vectorstore, "delete_by_source",
-        lambda source_name: {"deleted_count": 0, "collection_id": None}
+        lambda source_name, session_id=None: {"deleted_count": 0, "collection_id": None}
     )
 
     response = client.delete("/documents/missing.pdf")
@@ -175,12 +237,14 @@ def test_delete_document_by_name_returns_404_when_nothing_matches(client, monkey
 def test_delete_document_by_name_accepts_a_url_encoded_web_source(client, monkeypatch):
     captured = {}
 
-    def fake_delete(source_name):
+    def fake_delete(source_name, session_id=None):
         captured["source_name"] = source_name
+        captured["session_id"] = session_id
         return {"deleted_count": 1, "collection_id": "abc"}
     monkeypatch.setattr(vectorstore, "delete_by_source", fake_delete)
 
-    response = client.delete("/documents/https%3A%2F%2Ffastapi.tiangolo.com")
+    response = client.delete("/documents/https%3A%2F%2Ffastapi.tiangolo.com?session_id=url-session")
 
     assert response.status_code == 200
     assert captured["source_name"] == "https://fastapi.tiangolo.com"
+    assert captured["session_id"] == "url-session"

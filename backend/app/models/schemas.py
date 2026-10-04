@@ -4,11 +4,13 @@ from pydantic import BaseModel, Field, HttpUrl
 
 class WebIngestRequest(BaseModel):
     url: HttpUrl
+    session_id: str | None = None
 
 
 class DocumentSummary(BaseModel):
     source: str
     source_type: str | None = None
+    session_id: str | None = None
     chunk_count: int
 
 
@@ -17,11 +19,12 @@ class IngestionResponse(BaseModel):
     source_type: Literal["pdf", "docx", "web", "notion"]
     chunk_count: int
     sample_chunk: str | None = None
+    session_id: str
 
 
 class QueryRequest(BaseModel):
     question: str
-    k: int = Field(default=4, gt=0, le=10)
+    version: Literal["v1", "v2"] = "v1"
     session_id: str | None = None
  
  

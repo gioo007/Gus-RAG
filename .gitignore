@@ -5,13 +5,6 @@ __pycache__/
 .vscode/
 other-files/
 
-#documents
-*.pdf
-*.docx
-*.txt
-*.sql
-*.zip
-
 !requirements.txt
 #sample files fore tests
 !tests/fixtures/*  
