@@ -1,6 +1,6 @@
-# Gus AI — RAG Capstone
+# Gus AI: RAG Capstone
 
-A retrieval-augmented generation (RAG) app built with **FastAPI** and **LangChain** on the backend, and a **Next.js** dashboard on the frontend, answering questions over user-uploaded documents. Embeddings are generated via **Voyage AI** and stored in **pgvector** on a hosted **Neon Postgres** instance, with generation running on **Groq** and v2 retrieval reranked via **Cohere**.
+A retrieval-augmented generation (RAG) app built with **FastAPI** and **LangChain** on the backend, and a **Next.js** dashboard on the frontend, answering questions over user-uploaded documents. Embeddings are generated via **Voyage AI** and stored in **pgvector** on a hosted **Neon Postgres** instance, with generation running on **Groq** and v2 retrieval reranked via **Cohere**. v2 answers come from a tool-calling agent built with LangChain's `create_agent`, which decides when to search the documents.
 
 
 
@@ -9,7 +9,8 @@ A retrieval-augmented generation (RAG) app built with **FastAPI** and **LangChai
 | Layer | Technology |
 |---|---|
 | Backend framework | FastAPI |
-| Orchestration | LangChain (langchain-core, langchain-community, langchain-text-splitters, langchain-classic) |
+| Orchestration | LangChain (langchain, langchain-core, langchain-community, langchain-text-splitters, langchain-classic) |
+| Agent | `create_agent` (langchain) with a custom retrieval tool, session scoped through the agent's runtime context |
 | LLM | Groq (openai/gpt-oss-120b) via langchain-groq |
 | Embeddings | Voyage AI (`VoyageAIEmbeddings`) via langchain-voyageai |
 | Reranking | Cohere Rerank (`rerank-v3.5`) via langchain-cohere |
@@ -26,22 +27,25 @@ A retrieval-augmented generation (RAG) app built with **FastAPI** and **LangChai
 
 ## Features
 
-- **Document ingestion** — PDF, DOCX, and Notion exports (zip) via a single upload endpoint, plus web pages by URL, chunked with `RecursiveCharacterTextSplitter`, embedded via Voyage AI, and stored in pgvector
-- **Session-scoped multi-tenancy** — every ingested chunk, retrieval, and query is scoped by `session_id` end-to-end (ingestion, listing, deletion, vector search, BM25 corpus); a `session_id` is generated server-side and returned whenever a client omits one
-- **Document management** — list and delete ingested sources (optionally scoped to a `session_id`), with chunk counts
+- **Document ingestion**: PDF, DOCX, and Notion exports (zip) via a single upload endpoint, plus web pages by URL, chunked with `RecursiveCharacterTextSplitter`, embedded via Voyage AI, and stored in pgvector
+- **Session-scoped multi-tenancy**: every ingested chunk, retrieval, and query is scoped by `session_id` end-to-end (ingestion, listing, deletion, vector search, BM25 corpus); a `session_id` is generated server-side and returned whenever a client omits one
+- **Document management**: list and delete ingested sources (optionally scoped to a `session_id`), with chunk counts
 - **Two-tier retrieval:**
-  - **v1** — plain top-k similarity search (the eval baseline)
-  - **v2** — hybrid dense + sparse search (self-query/MMR vector retrieval ensembled with BM25), Cohere reranking, contextual compression, and optional multi-hop question decomposition for questions that need more than one retrieval pass
-- **Generation** — retrieved context stuffed into a prompt and answered by Groq
-- **Sourced answers** — query responses return deduplicated source chunks alongside the answer, for the dashboard's sources panel
-- **Conversational memory** — session-scoped running history on `/query`, persisted in Postgres
-- **Evaluation harness** — RAGAS-based benchmarking of v1 vs. v2 (faithfulness, etc.) against real services, with timestamped results kept under `eval/results/`
+  - **v1**: plain top-k similarity search (the eval baseline)
+  - **v2**: hybrid dense + sparse search (self-query/MMR vector retrieval ensembled with BM25), Cohere reranking, contextual compression, and optional multi-hop question decomposition for questions that need more than one retrieval pass
+- **Generation**:
+  - **v1**: retrieved context is stuffed into a prompt and answered by Groq in a single call
+  - **v2**: a `create_agent` tool-calling agent. The model decides when to call a `retrieve_documents` tool, may search again with a narrower question, and is capped at 3 retrievals per question. Greetings and questions about Gus itself are answered directly without retrieval
+- **Session-safe agent tools**: the `session_id` reaches the retrieval tool through the agent's runtime context and is never a model-visible argument, and the tool refuses to run without it, so the model cannot read or override which session it searches
+- **Sourced answers**: query responses return deduplicated sources alongside the answer, for the dashboard's sources panel (v1 from the retrieved chunks, v2 from the passages the agent's tool returned during that turn)
+- **Conversational memory**: session-scoped running history on `/query`, persisted in Postgres. Only the final question and answer of each turn are saved, not intermediate tool messages
+- **Evaluation harness**: RAGAS-based benchmarking of v1 vs. v2 (faithfulness, etc.) against real services, with timestamped results kept under `eval/results/`
 - **Environment-based config** via pydantic-settings and `.env`
 - **Auto-generated API docs** at `/docs` (Swagger UI) and `/redoc`
-- **Modular router structure** — documents and query in separate routers, thin routers delegating to a services layer
+- **Modular router structure**: documents and query in separate routers, thin routers delegating to a services layer
 - **CORS-enabled** for the separately-hosted frontend
-- **CI/CD** — GitHub Actions runs the pytest suite on every push/PR, and auto-deploys to Render on push to `main`
-- **Tested** — 61 pytest tests across schemas, services, and routers, with the DB connection, embedding model, and Groq client all mocked so the suite needs no real credentials and is CI-ready
+- **CI/CD**: GitHub Actions runs the pytest suite on every push/PR, and auto-deploys to Render on push to `main`
+- **Tested**: pytest suite across schemas, services, routers, and the v2 agent (including a scripted fake model that exercises the real agent loop), with the DB connection, embedding model, and Groq client all mocked so the suite needs no real credentials and is CI-ready
 
 
 
@@ -61,10 +65,10 @@ GUS-RAG/
 │   │   │   └── schemas.py           #pydantic request/response models
 │   │   ├── routers/
 │   │   │   ├── documents.py         #document upload, list, and delete endpoints
-│   │   │   └── query.py             #question-answering endpoint
+│   │   │   └── query.py             #question-answering endpoint (v1 and v2)
 │   │   ├── services/
 │   │   │   ├── chat_history.py      #session-scoped Postgres chat history
-│   │   │   ├── generation.py        #prompt + Groq call
+│   │   │   ├── generation.py        #v1 prompt call + v2 create_agent agent and retrieval tool
 │   │   │   ├── ingestion.py         #loaders + text splitting
 │   │   │   ├── retrieval.py         #v1 top-k + v2 hybrid search, reranking, compression
 │   │   │   └── vectorstore.py       #pgvector store + Voyage embeddings
@@ -95,22 +99,13 @@ GUS-RAG/
 ├── tests/
 │   ├── fixtures/                    #sample.pdf, sample.docx, sample_notion_export.zip
 │   ├── conftest.py                  #shared fixtures + import-time service mocks
-│   ├── test_chat_history.py
-│   ├── test_documents.py
-│   ├── test_generation.py
-│   ├── test_ingestion.py
-│   ├── test_query.py
-│   ├── test_retrieval.py
-│   ├── test_schemas.py
-│   └── test_vectorstore.py
+│   ├── test_generation.py           #example test file
+│   └── ...
 ├── .dockerignore
 ├── .gitignore
 ├── pytest.ini                       #pythonpath = backend, so tests import `app` directly
 └── README.md
 ```
-
-`backend/venv/`, `frontend/node_modules/`, and `eval/__pycache__/` are local, gitignored, and omitted above.
-
 
 
 ## API Endpoints
@@ -120,10 +115,10 @@ GUS-RAG/
 | GET | `/` | Welcome message |
 | GET | `/health` | Liveness check |
 | GET | `/documents/` | List ingested documents, optionally filtered by `session_id`, with source, type, and chunk count |
-| POST | `/documents/upload` | Upload a PDF, DOCX, or Notion export (zip) as multipart form data; type is auto-detected from the extension. `session_id` is an optional form field — a new one is generated and returned if omitted |
+| POST | `/documents/upload` | Upload a PDF, DOCX, or Notion export (zip) as multipart form data; type is auto-detected from the extension. `session_id` is an optional form field; a new one is generated and returned if omitted |
 | POST | `/documents/web` | Ingest a web page by URL (JSON body); `session_id` is optional, generated and returned if omitted |
 | DELETE | `/documents/{source_name}` | Delete a document and all of its vector chunks, optionally scoped to a `session_id` |
-| POST | `/query/` | Ask a question over ingested documents, scoped to `session_id` (generated if omitted); `version` (`v1` default or `v2`) selects the retrieval strategy. `k` is fixed server-side (default 7) and intentionally not client-configurable — only the eval harness varies it |
+| POST | `/query/` | Ask a question over ingested documents, scoped to `session_id` (generated if omitted). `version` (`v1` default or `v2`) selects the strategy: `v1` retrieves then generates in a single call, `v2` runs the retrieval agent. `k` is fixed server-side (default 7) and intentionally not client-configurable; only the eval harness varies it |
 
 
 
@@ -186,14 +181,14 @@ DATABASE_URL=postgresql://user:password@host/dbname    # Neon connection string,
 ALLOWED_ORIGINS=["http://localhost:3000", "https://your-frontend-domain.vercel.app"]
 ```
 
-A handful of retrieval-tuning knobs (BM25 weight, fetch-k multiplier, multi-hop subquestion cap, default `k`, ingestion batch size) also live in `app/core/config.py` with sane defaults — override them via `.env` only if you need to.
+A handful of retrieval-tuning knobs (BM25 weight, fetch-k multiplier, multi-hop subquestion cap, default `k`, ingestion batch size) also live in `app/core/config.py` with sane defaults. Override them via `.env` only if you need to.
 
 Create a `.env.local` file inside `frontend/`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000              
 ```
-Replace with Render URL in production
+Replace with the Render URL in production.
 
 
 
@@ -205,23 +200,25 @@ Run from the **repo root** (not `backend/`), so `pytest.ini`'s `pythonpath = bac
 pytest
 ```
 
-No real database, embedding model, or Groq key is needed. `tests/conftest.py` mocks the SQLAlchemy engine, the embedding model, the PGVector store, the psycopg connection, and the Groq client before any app code is imported, so the suite runs in under a second and is safe to drop straight into CI.
+No real database, embedding model, or Groq key is needed. `tests/conftest.py` mocks the SQLAlchemy engine, the embedding model, the PGVector store, the psycopg connection, and the Groq client before any app code is imported, so the suite runs quickly and is safe to drop straight into CI.
+
+The agent tests go one step further than plain mocks: a scripted fake chat model drives the real `create_agent` loop, which verifies that every retrieval uses the request's `session_id`, that the 3-retrieval cap holds, and that a call to an unknown tool does not crash the run.
 
 
 
 ## Evaluation (RAGAS)
 
-Separate from the pytest suite, `eval/` runs a RAGAS-based comparison of the v1 and v2 retrieval strategies against real services (actual Groq calls, actual pgvector lookups), not mocks — so it needs real credentials in `backend/.env`.
+Separate from the pytest suite, `eval/` runs a RAGAS-based comparison of the v1 and v2 retrieval strategies against real services (actual Groq calls, actual pgvector lookups), not mocks, so it needs real credentials in `backend/.env`.
 
 ```bash
-# Usage: (pick either v1 or v2, along with k: 1<=k<=10)
-cd eval
-pip install -r requirements.txt
+# Usage: python eval/run_eval.py <v1|v2> --k <1-10>
+# Run from the repo root
+pip install -r eval/requirements.txt
 python eval/run_eval.py v2 --k 7
 ```
 
 - `dataset.py` holds the fixed question/ground-truth set used for every run, so v1 and v2 are benchmarked against the same questions.
-  
+
 - `run_eval.py` computes the RAGAS metrics and writes a timestamped result file to `eval/results/`, so past runs are kept rather than overwritten.
 
 
@@ -232,10 +229,10 @@ Two GitHub Actions workflows live in `.github/workflows/`, split by branch:
 
 | Workflow | Triggers on | Does |
 |---|---|---|
-| `testing.yml` | Push/PR to `DEV`, `PR` to `v1` / `v2` | Runs the pytest suite only — CI gate for in-progress work |
+| `testing.yml` | Push/PR to `DEV`, PR to `v1` / `v2` | Runs the pytest suite only, as the CI gate for in-progress work |
 | `deploy.yml` | Push to `main` | Runs the pytest suite, then (on success) hits the Render deploy hook to ship the backend |
 
-Both jobs check out the repo, set up Python 3.13, install `backend/requirements.txt`, and run `pytest -v`. `GROQ_API_KEY`, `VOYAGE_API_KEY`, `COHERE_API_KEY`, `DATABASE_URL`, and `ALLOWED_ORIGINS` are all pulled from **GitHub Secrets**
+Both jobs check out the repo, set up Python 3.13, install `backend/requirements.txt`, and run `pytest -v`. `GROQ_API_KEY`, `VOYAGE_API_KEY`, `COHERE_API_KEY`, `DATABASE_URL`, and `ALLOWED_ORIGINS` are all pulled from **GitHub Secrets**.
 
 `deploy.yml`'s `deploy` job depends on `test` passing and calls `RENDER_DEPLOY_HOOK_URL` (a repo secret) to trigger a new Render deployment; Render then rebuilds and redeploys the Docker service directly from `main`. Vercel handles the frontend separately via its own Git integration and isn't part of these workflows.
 
@@ -248,7 +245,7 @@ Both jobs check out the repo, set up Python 3.13, install `backend/requirements.
 The FastAPI backend is deployed as a Docker Web Service on **Render**.
 
 - Embeddings (Voyage) and reranking (Cohere) are both external API calls.
-  
+
 - Ensure `DATABASE_URL`, `GROQ_API_KEY`, `VOYAGE_API_KEY`, and `COHERE_API_KEY` are set in the Render environment dashboard.
 
 ### Frontend (Vercel)
@@ -256,16 +253,20 @@ The FastAPI backend is deployed as a Docker Web Service on **Render**.
 The Next.js frontend is deployed to **Vercel**.
 
 - Add the `NEXT_PUBLIC_API_URL` environment variable to your Vercel project settings, pointing it to the live Render backend URL.
-  
+
 - Ensure the backend's CORS configuration (`ALLOWED_ORIGINS` in `main.py` / Render environment variables) is updated to accept traffic from your live Vercel domain.
 
 
 
 ## Known Limitations
 
-- **No user accounts or authentication.** The app scopes everything by an ephemeral `session_id` (client- or server-generated) rather than a logged-in user — there's no login system and no storage of user credentials.
-  
-- **No long-term, per-account chat history or file retention.** Conversational memory and ingested chunks are scoped to a `session_id`, but original uploaded files aren't retained after chunking — only their text chunks and embeddings are stored.
+- **No user accounts or authentication.** The app scopes everything by an ephemeral `session_id` (client- or server-generated) rather than a logged-in user. There is no login system and no storage of user credentials, due to limits in Neon's free tier db storage.
+
+- **No long-term, per-account chat history or file retention.** Conversational memory and ingested chunks are scoped to a `session_id`, but original uploaded files aren't retained after chunking. Only their text chunks and embeddings are stored, for the same reason stated before.
+
+- **v2 is less deterministic than v1.** The agent relies on the model's tool calling to decide when and what to search, so repeated runs can differ. The cap of 3 retrievals per question bounds latency and cost, but very broad questions may not be fully covered in one answer.
+
+- **Dependence on external services.** Groq, Voyage AI, Cohere, and Neon are all required at runtime. An outage or rate limit in any of them surfaces as a 500 with the underlying error in the response detail.
 
 
 
@@ -273,7 +274,7 @@ The Next.js frontend is deployed to **Vercel**.
 ## Roadmap
 
 **V1**
-- [x] FastAPI scaffold — app entrypoint, config, routers, health check
+- [x] FastAPI scaffold: app entrypoint, config, routers, health check
 - [x] Document ingestion + chunking (`RecursiveCharacterTextSplitter`)
 - [x] Embedding generation + pgvector storage
 - [x] Document listing and deletion
@@ -281,8 +282,8 @@ The Next.js frontend is deployed to **Vercel**.
 - [x] Generation (retrieve → prompt → Groq)
 - [x] Session-scoped conversational memory on `/query`
 - [x] Session-scoped multi-tenant isolation across ingestion, retrieval, and deletion, including hardening the self-query retriever against cross-session leakage
-- [x] Backend test suite (pytest, 61 tests, CI-ready)
-- [x] GitHub Actions CI/CD — test gate on PRs, auto-deploy to Render on `main`
+- [x] Backend test suite (pytest, CI-ready)
+- [x] GitHub Actions CI/CD: test gate on PRs, auto-deploy to Render on `main`
 - [x] v0-generated frontend dashboard design
 - [x] Wire the frontend dashboard to the live backend API
 - [x] Deploy to Render (Backend) and Vercel (Frontend)
@@ -292,4 +293,4 @@ The Next.js frontend is deployed to **Vercel**.
 - [x] Reranking step between retrieval and generation (Cohere)
 - [x] Retrieval-quality upgrades: MMR, metadata filtering, self-query retrieval, contextual compression, multi-hop retrievals
 - [x] Eval harness (RAGAS), benchmarking v1 vs. v2 on retrieval precision and faithfulness
-- [ ] Agentic behavior via `create_agent` + custom tools
+- [x] Agentic behavior via `create_agent` + custom retrieval tool (session id injected through runtime context, capped retrievals, agent loop covered by tests)

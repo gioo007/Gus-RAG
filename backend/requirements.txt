@@ -4,6 +4,7 @@ python-multipart==0.0.32      #for file uploads (POST /documents)
 pydantic-settings==2.15.0     #for parsing .env files
 pytest==9.1.1
 
+langchain==1.4.2
 langchain-core==1.6.3
 langchain-community==0.4.2
 langchain-text-splitters==1.1.2

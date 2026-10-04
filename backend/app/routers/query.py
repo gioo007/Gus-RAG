@@ -9,45 +9,44 @@ MAX_HISTORY_MESSAGES = 30  #number of messages to keep in history
 
 
 @router.post("/", response_model=QueryResponse)
-async def query(request: QueryRequest):
+def query(request: QueryRequest):
     session_id = request.session_id or str(uuid.uuid4())
+
     with chat_history.get_history(session_id) as history:
-        recent = history.messages[-MAX_HISTORY_MESSAGES:]
+        recent = list(history.messages[-MAX_HISTORY_MESSAGES:])
 
-        if request.version == "v2":
-            try:
-                result = generation.run_agent(request.question, recent, session_id=session_id)
-                answer = result["answer"]
-                seen = set()
-                sources = []
-                for source in result["sources"]:
-                    source_name = source["source"]
-                    if source_name in seen:
-                        continue
-                    seen.add(source_name)
-                    sources.append(SourceInfo(source=source_name, source_type=source.get("source_type")))
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Failed to generate answer: {e}") from e
-        else:
-            try:
-                chunks = retrieval.retrieve(request.question, request.version, session_id=session_id)
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Failed to retrieve documents: {e}") from e
+    if request.version == "v2":
+        try:
+            result = generation.run_agent(request.question, recent, session_id=session_id)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to generate answer: {e}") from e
 
-            try:
-                answer = generation.generate(request.question, chunks, recent, version=request.version)
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Failed to generate answer: {e}") from e
+        answer = result["answer"]
+        sources = [
+            SourceInfo(source=s["source"], source_type=s.get("source_type"))
+            for s in result["sources"]
+        ]
+    else:
+        try:
+            chunks = retrieval.retrieve(request.question, request.version, session_id=session_id)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to retrieve documents: {e}") from e
 
-            seen = set()
-            sources = []
-            for chunk in chunks:
-                source = chunk.metadata.get("source", "unknown")
-                if source in seen:
-                    continue
-                seen.add(source)
-                sources.append(SourceInfo(source=source, source_type=chunk.metadata.get("source_type")))
+        try:
+            answer = generation.generate(request.question, chunks, recent)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to generate answer: {e}") from e
 
+        seen = set()
+        sources = []
+        for chunk in chunks:
+            source = chunk.metadata.get("source", "unknown")
+            if source in seen:
+                continue
+            seen.add(source)
+            sources.append(SourceInfo(source=source, source_type=chunk.metadata.get("source_type")))
+
+    with chat_history.get_history(session_id) as history:
         history.add_user_message(request.question)
         history.add_ai_message(answer)
 
