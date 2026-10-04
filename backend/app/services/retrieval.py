@@ -166,7 +166,7 @@ def dedupe(docs: list[Document]) -> list[Document]:
 def rerank(question: str, docs: list[Document], top_k: int) -> list[Document]:
     if not docs:
         return docs
-    reranker = CohereRerank(model="rerank-v3.5", top_n=top_k, cohere_api_key=SecretStr(settings.COHERE_API_KEY))
+    reranker = CohereRerank(model=settings.RERANK_MODEL, top_n=top_k, cohere_api_key=SecretStr(settings.COHERE_API_KEY))
     reranked = reranker.compress_documents(docs, query=question)
     return [doc for doc in reranked[:top_k]]
 
