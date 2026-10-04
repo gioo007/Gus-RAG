@@ -238,6 +238,21 @@ Both jobs check out the repo, set up Python 3.13, install `backend/requirements.
 
 
 
+## CI/CD
+
+Two GitHub Actions workflows live in `.github/workflows/`, split by branch:
+
+| Workflow | Triggers on | Does |
+|---|---|---|
+| `testing.yml` | Push/PR to `DEV`, `PR` to `v1` / `v2` | Runs the pytest suite only — CI gate for in-progress work |
+| `deploy.yml` | Push to `main` | Runs the pytest suite, then (on success) hits the Render deploy hook to ship the backend |
+
+Both jobs check out the repo, set up Python 3.13, install `backend/requirements.txt`, and run `pytest -v`. Since the test suite mocks the DB, embedding model, and Groq client (see [Testing](#testing)), the `GROQ_API_KEY`, `DATABASE_URL`, and `ALLOWED_ORIGINS` env vars passed in are placeholders required only so `pydantic-settings` doesn't fail on missing config — no real credentials are needed for tests to pass.
+
+`deploy.yml`'s `deploy` job depends on `test` passing and calls `RENDER_DEPLOY_HOOK_URL` (a repo secret) to trigger a new Render deployment; Render then rebuilds and redeploys the Docker service directly from `main`. Vercel handles the frontend separately via its own Git integration and isn't part of these workflows.
+
+---
+
 ## Deployment
 
 ### Backend (Render)
