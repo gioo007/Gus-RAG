@@ -1,0 +1,200 @@
+[
+  {
+    "user_input":"What is the distinction between autonomous behavior and adaptive behavior in an AI agent?",
+    "retrieved_contexts":[
+      "\u2022 In general, things that are autonomous yet adaptive are intelligent.\n\u2022 Autonomous means that something does not need to be provided constant instructions; and adaptive means that it can change its behavior as the environment or problem space changes.",
+      "Solutions that can learn autonomously while adapting to new data and environments are also seen to be AI-likeness."
+    ],
+    "response":"**Autonomous behavior**  \n- The agent operates without needing continual, explicit instructions.  \n- It can act on its own once it has been set up.\n\n**Adaptive behavior**  \n- The agent modifies its actions in response to changes in the environment or problem space.  \n- It learns or adjusts its strategy as new data or conditions appear.",
+    "reference":"Autonomous behavior means the system does not require constant instructions to operate, whereas adaptive behavior means the system can modify its behavior when the environment or problem space changes[cite: 2].",
+    "faithfulness":0.8571428571,
+    "llm_context_precision_with_reference":0.9999999999
+  },
+  {
+    "user_input":"What are the four levels of the DIKW Pyramid and how are they defined?",
+    "retrieved_contexts":[
+      "initial state\nS 4 5 7\n8 3 1 11\n14 6 10\n9 13 15 12",
+      "2 4 5 7 12 9 4 2 15 4 10 3\n8 3 1 11 8 7 3 14 13 1 11 12\n14 6 10 1 6 11 9 5 14 7\n9 13 15 12 5 13 10 15 6 8 2",
+      "27\nPath Finding",
+      "12\nPath Finding",
+      "26\nPath Finding",
+      "13\nPath Finding",
+      "3\/6\/2026 9\n\u2022 Object: all the facts about objects in our world \ndomain. E.G., Guitars contains strings, trumpets \nare brass instruments.\n\u2022 Events: events are the actions which occur in \nour world.\n\u2022 Performance: it describes behavior which \ninvolves knowledge about how to do things.\n\u2022 Meta-knowledge: it is knowledge about what \nwe know.\n\u2022 Facts: facts are the truths about the real world \nand what we represent.\nWhat Kind Of Knowledge Do We Need To \nRepresent ?",
+      "29\nPath Finding",
+      "34\nPath Finding",
+      "25\nPath Finding"
+    ],
+    "response":"**Grounded Answer (from the provided context)**  \nThe supplied documents do not contain any information about the DIKW Pyramid or its levels.\n\n---\n\n**Additional Information (outside the provided context)**  \n\nThe DIKW Pyramid is a hierarchical model that describes the transformation of raw data into higher\u2011order understanding:\n\n| Level | Definition |\n|-------|------------|\n| **Data** | Raw, unprocessed facts and figures without context or meaning. |\n| **Information** | Processed or organized data that provides context, relevance, and purpose, making it understandable. |\n| **Knowledge** | Information that has been synthesized, interpreted, and integrated with experience, allowing for insight and the ability to make decisions. |\n| **Wisdom** | The judicious application of knowledge, guided by values and ethics, to make sound judgments and take effective action. |\n\nThese four levels illustrate how simple observations (data) can be refined into deep insight (wisdom) through successive stages of processing and understanding.",
+    "reference":"The four levels are: Data (unorganized, unprocessed raw facts), Information (aggregated data that provides context and answers questions), Knowledge (information combined with human experience and context), and Wisdom (the ability to make sound decisions using knowledge)[cite: 2].",
+    "faithfulness":0.0,
+    "llm_context_precision_with_reference":0.0
+  },
+  {
+    "user_input":"What are the core differences between Supervised, Unsupervised, and Reinforcement Learning?",
+    "retrieved_contexts":[
+      "\u2022 Supervised learning means training models with algorithms \nwhen the training data has known outcomes for a question \nbeing asked, such as determining the type of fruit if we have a \nset of data that includes the weight, color, texture, and fruit \nlabel for each example.\n\u2022 Unsupervised learning uncovers hidden relationships and \nstructures within the data that guide us in asking the dataset \nrelevant questions. It may find patterns in properties of similar \nfruits and group them accordingly, which can inform the exact \nquestions we want to ask the data.\n\u2022 Reinforcement learning is inspired by behavioral psychology. In \nshort, it describes rewarding an individual if a useful action was \nperformed and penalizing that individual if an unfavorable \naction was performed."
+    ],
+    "response":"**Core Differences**\n\n| Aspect | Supervised Learning | Unsupervised Learning | Reinforcement Learning |\n|--------|---------------------|-----------------------|------------------------|\n| **Training data** | Includes known outcomes (labels) for each example. | No labels; the algorithm must discover structure on its own. | No explicit labeled data; learning is driven by rewards and penalties. |\n| **Goal** | Predict the correct label (e.g., fruit type) from input features. | uncover hidden relationships or groupings within the data (e.g., clustering similar fruits). | Learn a policy that maximizes cumulative reward by taking useful actions and avoiding unfavorable ones. |\n| **Learning signal** | Direct supervision from correct answers. | Implicit patterns inferred from data distribution. | Feedback in the form of rewards (positive) or penalties (negative). |",
+    "reference":"Supervised learning uses labeled training data with known outcomes; Unsupervised learning uncovers hidden patterns and structures in unlabeled data; Reinforcement learning trains agents through trial and error using rewards for desired actions and penalties for unfavorable ones[cite: 2].",
+    "faithfulness":0.8888888889,
+    "llm_context_precision_with_reference":0.9999999999
+  },
+  {
+    "user_input":"What are the five core components required to formally define a search problem?",
+    "retrieved_contexts":[
+      "Problem Types\nSearch problems: Find a path to a solution\n\u2022 A search problem involves a situation that has \nmultiple possible solutions, each of which represents \na sequence of steps (path) toward a goal.\n\u2022 Some solutions contain overlapping subsets of paths; \nsome are better than others; and some are cheaper to \nachieve than others.\n\u2022 A \u201cbetter\u201d solution is determined by the specific \nproblem at hand; a \u201ccheaper\u201d solution means \ncomputationally cheaper to execute.",
+      "2\/25\/2026 3\n\u2022 The search example of the maze game involves a single actor: \nthe player.\n\u2022 The environment is affected only by the single player; thus, \nthat player generates all possibilities.\n\u2022 The goal until now was to maximize the benefit for the player: \nchoosing paths to the goal with the shortest distance and \ncost.\n\u2022 Adversarial search is characterized by opposition or conflict. \nAdversarial problems require us to anticipate, understand, \nand counteract the actions of the opponent in pursuit of a \ngoal.\nAdversarial Search",
+      "\u2022 Almost any problem that requires a series of decisions to be \nmade can be solved with search algorithms.\n\u2022 Depending on the problem and the size of the search space, \ndifferent algorithms may be employed to help solve it.\n\u2022 Depending on the search algorithm selected and the \nconfiguration used, the optimal solution or a best available \nsolution may be found.\n\u2022 In other words, a good solution will be found, but it might \nnot necessarily be the best solution.\n\u2022 When we speak about a \u201cgood solution\u201d or \u201coptimal \nsolution,\u201d we are referring to the performance of the \nsolution in addressing the problem at hand.\n\u2022 For example, searching algorithms are essential in games \n(ex: maze), robots, and GPS applications.\nProblems Applicable to Search \nAlgorithms",
+      "\u2022 There exists a goal that we want to reach and barriers that we \ncannot step into.\n\u2022 The objective is to find a path to the goal while avoiding barriers \nwith as few steps as possible by moving north, south, east, or \nwest.\n\u2022 In this example, the player cannot move diagonally.\n\u2022 How can we find the shortest path to the goal while avoiding \nbarriers? By evaluating the problem as a human, we can try each \npossibility and count the moves. Using trial and error, we can \nfind the paths that are the shortest, given that this maze is \nrelatively small.\nExample: (Maze)\n\u2022 One scenario in which search \nalgorithms are useful is being stuck \nin a maze and attempting to find \nthe shortest path to a goal.",
+      "Search Algorithms\n\u2022 Search algorithms are useful for \nsolving problems in which several \nactions or different paths are \nrequired to achieve a goal, such as \nfinding a path through a maze or \ndetermining the best move to make \nin a game.\n\u2022 Search algorithms evaluate future states and \nattempt to find the optimal path to the most \nvaluable goal.",
+      "\u2022 Searching is a way to guide planning by creating steps in a \nplan.\n\u2022 When we plan a trip, for  example, we search for routes \nto take, evaluate the stops along the way and what they \noffer, and search for accommodations and activities that \nalign with our liking and budget.\n\u2022 Depending on the results of these searches, the plan \nchanges.\n\u2022 Searching involves evaluating future states toward a goal \nwith the aim of finding an optimal path of states until the \ngoal is reached.\n\u2022 Searching is an old but powerful tool for developing \nintelligent algorithms to solve problems.\nSearch Fundamentals",
+      "2\/25\/2026 4\n\u2022 Examples of adversarial problems include two-player turn-\nbased games such as Tic-Tac-Toe and Connect Four.\n\u2022 The players take turns for the opportunity to change the state \nof the environment of the game to their favor.\n\u2022 A set of rules dictates how the environment may be changed \nand what the winning and end states are.\n\u2022 In adversarial search we examine the problems that arise \nwhen we try to plan ahead in a world where other agents are \nplanning against us.\n\u2022 Multiagent environments: Environments in which each agent \nneeds to consider the actions of other agents and how they \naffect its own welfare. \n\u2022 Competitive environments, in which the agents\u2019 goals are in \nconflict, giving rise to adversarial search problems\u2014often \nknown as games.\nAdversarial Search",
+      "\u2022 A data structure is an abstract data type consisting of \ndata and operations organized in a specific way.\n\u2022 The data structure we use is influenced by the context \nof the problem and the desired goal.\n\u2022 Trees and graphs are ideal for representing data in a \nway that search algorithms can use.\nRepresenting Data\n262\/18\/2026",
+      "\u2022 Our power as humans is to perceive a problem visually, \nunderstand it, and find solutions given the parameters. \n\u2022 As humans, we understand and interpret data and \ninformation in an abstract way.\n\u2022 A computer cannot yet understand generalized \ninformation in the natural form that we do.\n\u2022 The problem space needs to be represented in a form \nthat is applicable to computation and can be processed \nwith search algorithms.\n\u2022 Thus, Data Structures are required.\nRepresenting Data\n242\/18\/2026",
+      "Search \nAlgorithms"
+    ],
+    "response":"**Answer based on the provided context**\n\nThe supplied material does not list the five core components needed to formally define a search problem.\n\n---\n\n**General knowledge (outside the given context)**  \n\nA search problem is typically specified by the following five components:\n\n| # | Component | Description |\n|---|-----------|-------------|\n| 1 | **State space** | The set of all possible states that can be reached. |\n| 2 | **Initial state** | The state where the search starts. |\n| 3 | **Actions \/ Successor function** | For any state, the set of actions that can be taken and the resulting successor states. |\n| 4 | **Goal test** | A predicate that determines whether a given state is a goal state. |\n| 5 | **Path\u2011cost function** | A function that assigns a numeric cost to each path (often the sum of step costs). |\n\nThese components together provide a complete formal definition of a search problem, enabling the application of search algorithms to find a solution.",
+    "reference":"A search problem is defined by an initial state, a set of available actions, a transition model RESULT(s, a), a goal test, and a path cost function[cite: 3].",
+    "faithfulness":0.1666666667,
+    "llm_context_precision_with_reference":0.0
+  },
+  {
+    "user_input":"What is the evaluation function of A* search, and under what condition is A* guaranteed to be optimal?",
+    "retrieved_contexts":[
+      "\u2022 In addition, it can guarantee to find an optimal solution as long as it uses an admissible heuristic function (a function that never overestimates the true cost).\n\n\u2022 A* combines Best-First and Dijkstra by taking into account both the given cost (the actual cost paid to reach a node from the start) and the heuristic cost (the estimated cost to reach the goal).",
+      "In a weighted graph, the evaluation function can \ncombine information regarding the edge weights and \nsome heuristic function, h(x), that represents a measure \nfrom a node to the goal node."
+    ],
+    "response":"**Evaluation function**\n\nA* evaluates each node\u202f*x* with  \n\n\\[\nf(x) = g(x) + h(x)\n\\]\n\nwhere  \n\n* **\\(g(x)\\)** \u2013 the actual cost incurred to reach *x* from the start node.  \n* **\\(h(x)\\)** \u2013 a heuristic estimate of the cost from *x* to the goal.\n\n**Condition for optimality**\n\nA* is guaranteed to return an optimal solution **provided the heuristic\u202f\\(h(x)\\) is admissible**\u2014i.e., it never overestimates the true remaining cost to the goal.",
+    "reference":"A* search evaluates nodes using f(n) = g(n) + h(n), where g(n) is the exact cost to reach node n and h(n) is the estimated cost to the goal. It is optimal provided h(n) is an admissible heuristic (it never overestimates the actual cost)[cite: 3].",
+    "faithfulness":1.0,
+    "llm_context_precision_with_reference":1.0
+  },
+  {
+    "user_input":"When should Manhattan distance be used as a heuristic instead of Euclidean distance in grid-based pathfinding?",
+    "retrieved_contexts":[
+      "\u2022 Approximation Heuristics  \n\u2022 1. Manhattan Distance  \nh (x) = abs (current_cell.x \u2013 goal.x) + abs (current_cell.y \u2013 goal.y)  \n\n\u2022 When to use this heuristic? \u2013 When we are allowed to move only in four directions only (right, left, top, bottom)",
+      "Path Finding",
+      "Path Finding",
+      "Path Finding"
+    ],
+    "response":"**Use Manhattan distance when movement is limited to the four orthogonal directions (right, left, up, down).**  \n\nIn such a grid you cannot move diagonally, so the Manhattan heuristic (\u202f|\u0394x|\u202f+\u202f|\u0394y|\u202f) correctly estimates the shortest path, whereas Euclidean distance assumes unrestricted (including diagonal) movement.",
+    "reference":"Manhattan distance should be used when movement is restricted to 4 directions (up, down, left, right), whereas Euclidean distance is appropriate when movement is allowed in any direction[cite: 3].",
+    "faithfulness":0.4,
+    "llm_context_precision_with_reference":0.9999999999
+  },
+  {
+    "user_input":"What is the key structural difference between a simultaneous game and a sequential game?",
+    "retrieved_contexts":[
+      "\u2013 In a simultaneous game, each player has only one \nmove, and all moves are made simultaneously.\n\u2013 In a sequential game, no two players move at the \nsame time, and players may have to move several \ntimes.",
+      "\u2013 A sequential game has perfect information if every \nplayer, when about to move, knows all previous \nmoves.",
+      "They make their decisions simultaneously.",
+      "Players I and II simultaneously call out one of the numbers one or two."
+    ],
+    "response":"**Key structural difference**\n\n| Aspect | Simultaneous game | Sequential game |\n|--------|-------------------|-----------------|\n| Timing of moves | All players choose their actions **at the same time** (one move each). | Players move **one after another**; no two moves occur together, and a player may move several times. |\n| Information | Players do **not** observe others\u2019 choices before deciding. | Later movers can observe earlier moves (perfect\u2011information sequential games give full knowledge of all prior actions). |\n\nIn short, a simultaneous game\u2019s moves are made concurrently, whereas a sequential game\u2019s moves are made in a definite order, one after another.",
+    "reference":"In a simultaneous game, players make their moves at the same time without knowledge of the choices made by others, whereas in a sequential game, players take turns making moves and can observe previous actions[cite: 4].",
+    "faithfulness":0.7142857143,
+    "llm_context_precision_with_reference":1.0
+  },
+  {
+    "user_input":"What defines a zero-sum game in game theory?",
+    "retrieved_contexts":[
+      "\u2022 A game is called zero-sum if the sum of payoffs equals zero for \nany outcome.\n\u2022 That means that the winnings of the winning players are paid by \nthe losses of the losing players.\n\u2022 For zero-sum two-player games, the bimatrix representation of \nthe game can be simplified: the payoff of the second player \ndoesn\u2019t have to be displayed, since it is the negative of the \npayoff of the first player.",
+      "A two-person zero-sum game (X, Y,A) is said to be a finite game if both strategy sets X and Y are finite sets.",
+      "\u2013 Zero-sum games have the property that the sum of \nthe payoffs to the players equals zero.\n\u2013 A player can have a positive payoff only if another \nhas a negative payoff.",
+      "\u2022 The zero-sum assumption allows us to use a single evaluation function \nto describe the goodness of a board with respect to both players. \n\u2013 f(n)  >> 0: position n good for me and bad for you\n\u2013 f(n) << 0:  position n bad for me and good for you\n\u2013 f(n) near 0: position n is a neutral position\n\u2013 f(n) = +infinity: win for  me\n\u2013 f(n) = -infinity: win for you",
+      "Let\u2019s consider the two-player zero-sum game with elements of chance represented by the \nfollowing tree.",
+      "\u2022 For a two-person zero-sum game, the payoff function of Player II is \nthe negative of the payoff of Player I, so we may restrict attention \nto the single payoff function of Player I, which we call here A.",
+      "Two Player \u2013 Zero Sum"
+    ],
+    "response":"**Definition of a zero\u2011sum game (from the provided context)**  \n\n- The **sum of the players\u2019 payoffs equals zero for every possible outcome**.  \n- Consequently, any gain by one player is exactly offset by an equal loss to the other player(s).  \n- In a two\u2011player zero\u2011sum game, the payoff of Player\u202fII is simply the **negative of Player\u202fI\u2019s payoff**, so only one payoff function needs to be recorded.  \n\nThese points together define what makes a game zero\u2011sum in game theory.",
+    "reference":"A zero-sum game is one where the total sum of payoffs across all players equals zero for every outcome, meaning any gain for one player results in an equal loss for another player[cite: 4].",
+    "faithfulness":1.0,
+    "llm_context_precision_with_reference":0.7708333333
+  },
+  {
+    "user_input":"What general condition triggers pruning in the Alpha-Beta Pruning algorithm?",
+    "retrieved_contexts":[
+      "AND AGAIN IT SATISFIES THE CONDITION \u0391LPHA>=\u0392ETA, SO THE NEXT CHILD OF C WHICH IS G WILL BE PRUNED",
+      "\u2022 Beta cutoff: Given a MAX node n, cut off the search below n \n(i.e., don\u2019t generate or examine any more of n\u2019s children) if \nalpha(n) >= beta(i) for some MIN node ancestor i of n. \n\u2022 Alpha cutoff: stop searching below MIN node n if beta(n) <= \nalpha(i) for some MAX node ancestor i of n.",
+      "WHERE\u202f\u0391LPHA>=\u0392ETA,\u202fSO\u202fTHE\u202fRIGHT\u202fSUCCESSOR\u202fOF\u202fE\u202fWILL\u202fBE\u202fPRUNED",
+      "\u2022 Basic idea: \u201cIf you have an idea that is surely \nbad, don't take the time to see how truly awful \nit is.\u201d -- Pat Winston \n\u2022 We don\u2019t need to compute \nthe value at this node.\n\u2022 No matter what it is, it can\u2019t \naffect the value of the root \nnode."
+    ],
+    "response":"**General pruning condition**\n\nA branch is cut off as soon as the two search bounds cross:\n\n\\[\n\\alpha \\;\\ge\\; \\beta\n\\]\n\n- **Beta\u2011cutoff** (at a MAX node): stop generating further children when the node\u2019s current \u03b1 value is \u2265 the \u03b2 value of a MIN\u2011node ancestor.  \n- **Alpha\u2011cutoff** (at a MIN node): stop searching when the node\u2019s current \u03b2 value is \u2264 the \u03b1 value of a MAX\u2011node ancestor.\n\nIn either case, once **\u03b1\u202f\u2265\u202f\u03b2** the remaining descendants cannot influence the root\u2019s final value, so they are pruned.",
+    "reference":"Pruning occurs whenever the alpha value at a node is greater than or equal to the beta value of an ancestor node (alpha >= beta), meaning the current branch cannot influence the final outcome at the root[cite: 4].",
+    "faithfulness":1.0,
+    "llm_context_precision_with_reference":1.0
+  },
+  {
+    "user_input":"How does declarative knowledge differ from procedural knowledge?",
+    "retrieved_contexts":[
+      "Declarative Knowledge\n\u2022 Declarative knowledge refers to facts and \ninformation that describe the world, answering \nthe \"what\u201c type of questions.\n\u2022 Example: it is a sunny day; the flower is red.\n\u2022 This knowledge is often stored in databases or \nknowledge bases and expressed in logical \nstatements, forming the foundation for more \ncomplex reasoning and problem-solving in AI \nsystems."
+    ],
+    "response":"**Based on the provided context**\n\n- Declarative knowledge consists of facts and information that describe the world and answer \u201cwhat\u201d questions (e.g., \u201cit is a sunny day,\u201d \u201cthe flower is red\u201d).  \n- It is typically stored in databases or knowledge bases and expressed as logical statements, serving as the foundation for more complex reasoning in AI systems.\n\n**Additional information (outside the given context)**  \n\n- **Procedural knowledge** refers to know\u2011how or the steps required to perform tasks; it answers \u201chow\u201d questions (e.g., how to ride a bike or solve a math problem).  \n- The key difference: declarative knowledge tells *what* is true, while procedural knowledge tells *how* to do something.",
+    "reference":"Declarative knowledge represents explicit static facts and information answering 'what' questions, whereas procedural knowledge represents step-by-step operational instructions and algorithms answering 'how' to perform tasks[cite: 5].",
+    "faithfulness":1.0,
+    "llm_context_precision_with_reference":0.9999999999
+  },
+  {
+    "user_input":"How is knowledge structured inside a Frame representation?",
+    "retrieved_contexts":[
+      "Frames are data structures that encapsulate \nknowledge about objects, situations, or events in a \nstructured format.\nEach frame contains attributes (slots) and their \nassociated values, which can include default values, \nconstraints, and even procedural knowledge.",
+      "\u2022 Represent knowledge using frames, which are data structures \nsimilar to objects in programming.\n\u2022 Each frame contains attributes and values related to a particular \nconcept.",
+      "Knowledge Representation Approaches\nFrames Representation"
+    ],
+    "response":"**Knowledge in a Frame is organized as:**\n\n- **Attributes (slots):** Named properties that describe the object, situation, or event.  \n- **Values:** The information stored in each slot, which may be:\n  - Concrete values  \n  - Default values  \n  - Constraints on allowable values  \n  - Procedural knowledge (rules or methods associated with the slot)\n\nThus, a Frame encapsulates a concept by grouping its relevant attributes together, each paired with its corresponding value(s).",
+    "reference":"A Frame encapsulates structured knowledge about stereotypical objects or situations using named attributes called 'slots' and corresponding values or constraints called 'filters'[cite: 5].",
+    "faithfulness":0.8,
+    "llm_context_precision_with_reference":1.0
+  },
+  {
+    "user_input":"What is the expressive advantage of First-Order Logic (FOL) over Propositional Logic?",
+    "retrieved_contexts":[
+      "\u2022 A limitation of propositional logic is the impossibility to express \ngeneral statements concerning similar cases.\n\u2022 First-order predicate logic is more expressive than propositional \nlogic, and such general statements can be specified in its language.",
+      "\u2022 Variables, usually denoted by lowercase letters from the end of the \nalphabet, such as x, y, z, possibly indexed with a natural number.\n\u2022 Function symbols, usually denoted by lowercase letters halfway \nthe alphabet. Each function symbol has associated a natural \nnumber n, n \u2265 0, indicating its number of arguments; the function \nsymbol is called n-place. Nullary function symbols are usually called \nconstants.\n\u2022 The logical connectives which have already been discussed in the \nprevious section.\n\u2022 Two quantifiers: the universal quantifier \u2200, and the existential \nquantifier \u2203. The quantifiers should be read as follows: if x is a \nvariable, then \u2200x means \u2018for each x\u2019 or \u2018for all x\u2019, and \u2203x means \n\u2018there exists an x\u2019.\n\u2022 A number of auxiliary symbols such as parentheses and commas.",
+      "First -Order Logic\nPerson(Minerva) \nHouse(Gryffindor)\n\u00acHouse(Minerva)\nMiner va is a person.\nGryffindor is a hous e.\nMiner va is not a hous e.\nBelongsTo(Minerva, Gryffindor)\nMiner va belongs to Gryffindo r."
+    ],
+    "response":"**Expressive advantage of First\u2011Order Logic (FOL) over Propositional Logic**\n\n- **General statements:**  \n  FOL can express universal and existential generalizations about whole classes of objects (e.g., \u201cfor every\u202fx \u2026\u201d or \u201cthere exists an\u202fx \u2026\u201d), which propositional logic cannot do.\n\n- **Variables and quantifiers:**  \n  By using variables (e.g.,\u202fx,\u202fy) together with the quantifiers \u2200 (for all) and \u2203 (there exists), FOL can capture patterns that apply to many similar cases, whereas propositional logic is limited to fixed, atomic propositions.\n\nThus, FOL is more expressive because it can represent and reason about general statements concerning similar cases, a capability lacking in propositional logic.",
+    "reference":"Propositional logic treats basic facts as atomic propositions that are simply true or false, whereas First-Order Logic expresses complex relationships using objects, predicates, functions, and universal or existential quantifiers[cite: 5].",
+    "faithfulness":1.0,
+    "llm_context_precision_with_reference":1.0
+  },
+  {
+    "user_input":"What is a Saddle Point in a zero-sum payoff matrix game?",
+    "retrieved_contexts":[
+      "\u2022 Occasionally it is easy to solve the game. If some entry aij of the \nmatrix A has the property that\n(1) aij is the minimum of the ith row\n(2) aij is the maximum of the jth column\nthen we say aij is a saddle point.\n\u2022 If aij is a saddle point, then Player I can then win at least aij by \nchoosing row i, and Player II can keep her loss to at most aij by \nchoosing column j.\n\u2022 Hence aij is the value of the game.",
+      "The central entry, 2, is a saddle point, since it is a minimum of its row and maximum of its column.",
+      "Test for a saddle point."
+    ],
+    "response":"**Saddle Point (zero\u2011sum game)**  \n\nA matrix entry \\(a_{ij}\\) is called a **saddle point** when it satisfies two conditions:\n\n1. **Row condition:** \\(a_{ij}\\) is the **minimum** value in its own row \\(i\\).  \n2. **Column condition:** \\(a_{ij}\\) is the **maximum** value in its own column \\(j\\).\n\nWhen these hold, the row player (Player\u202fI) can guarantee at least \\(a_{ij}\\) by selecting row \\(i\\), and the column player (Player\u202fII) can limit the loss to at most \\(a_{ij}\\) by selecting column \\(j\\). Consequently, \\(a_{ij}\\) is the **value of the game**.  \n\n*Example:* In the given matrix, the central entry \\(2\\) is a saddle point because it is the smallest number in its row and the largest in its column.",
+    "reference":"A Saddle Point is an entry in a payoff matrix that is simultaneously the minimum element in its row and the maximum element in its column, establishing the strict value of the game[cite: 1].",
+    "faithfulness":1.0,
+    "llm_context_precision_with_reference":1.0
+  },
+  {
+    "user_input":"What is the effect of removing a strictly dominated strategy on a matrix game?",
+    "retrieved_contexts":[
+      "\u2022 To be more precise, removal of a dominated row or column does not \nchange the value of a game.  \n\u2022 However, in the case of removal of a strictly dominated row or \ncolumn, the set of optimal strategies does not change.",
+      "\u2022 Sometimes, large matrix games may be reduced in size (hopefully \nto the 2\u00d72 case) by deleting rows and columns that are obviously \nbad for the player who uses them.\n\u2022 Anything Player I can achieve using a dominated row can be \nachieved at least as well using the row that dominates it. \nRemoving Dominated Strategies (Pruning)",
+      "Removing Dominated Strategies",
+      "Matrix Games - \nDomination"
+    ],
+    "response":"**Effect of removing a strictly dominated strategy**\n\n- **Game value:** The value of the game remains unchanged.  \n- **Optimal strategies:** The set of optimal strategies for the players does not change.  \n- **Practical impact:** Deleting a strictly dominated row (for Player\u202fI) or column (for Player\u202fII) simply reduces the size of the matrix without affecting any equilibrium outcomes.  \n\nIn short, eliminating a strictly dominated strategy prunes the matrix while preserving both the game\u2019s value and its optimal strategy set.",
+    "reference":"Removing a strictly dominated strategy reduces matrix size without altering the overall value of the game or changing the set of optimal strategies[cite: 1].",
+    "faithfulness":0.8,
+    "llm_context_precision_with_reference":1.0
+  },
+  {
+    "user_input":"What steps should be followed to solve a 2x2 zero-sum matrix game?",
+    "retrieved_contexts":[
+      "\u2022 To solve this game (i.e. to find the value and at least one optimal \nstrategy for each player) we proceed as follows:\n1. Test for a saddle point.\n2. If there is no saddle point, solve by finding equalizing strategies.",
+      "\u2022 Occasionally it is easy to solve the game. If some entry aij of the \nmatrix A has the property that\n(1) aij is the minimum of the ith row\n(2) aij is the maximum of the jth column\nthen we say aij is a saddle point.\n\u2022 If aij is a saddle point, then Player I can then win at least aij by \nchoosing row i, and Player II can keep her loss to at most aij by \nchoosing column j.\n\u2022 Hence aij is the value of the game.",
+      "\u2022 Sometimes, large matrix games may be reduced in size (hopefully \nto the 2\u00d72 case) by deleting rows and columns that are obviously \nbad for the player who uses them.\n\u2022 Anything Player I can achieve using a dominated row can be \nachieved at least as well using the row that dominates it. \nRemoving Dominated Strategies (Pruning)",
+      "\u2022 A two-person zero-sum game (X, Y,A) is said to be a finite game if \nboth strategy sets X and Y are finite sets. \n\u2022 The fundamental theorem of game theory due to von Neumann \nstates that the situation encountered in the game of Odd-or-Even \nholds for all finite two-person zero-sum games.\nThe Minimax Theorem",
+      "\u2022 For a two-person zero-sum game, the payoff function of Player\u202fII is the negative of the payoff of Player\u202fI, so we may restrict attention to the single payoff function of Player\u202fI, which we call here A."
+    ],
+    "response":"**Answer (grounded in the provided context)**  \n\nTo solve a zero\u2011sum matrix game (including a 2\u202f\u00d7\u202f2 game) follow these steps:\n\n1. **Test for a saddle point**  \n   - Look for an entry \\(a_{ij}\\) that is the *minimum* of its row **and** the *maximum* of its column.  \n   - If such an entry exists, it is a saddle point.  \n   - The row \\(i\\) is an optimal pure strategy for Player\u202fI, column \\(j\\) is optimal for Player\u202fII, and the value of the game is \\(a_{ij}\\).\n\n2. **If no saddle point, find equalizing (mixed) strategies**  \n   - Determine probability distributions for the players that make the opponent indifferent between his\/her pure strategies.  \n   - The resulting mixed strategies and the common expected payoff give the optimal strategies and the value of the game.\n\n---\n\n**Additional (outside\u2011context) clarification (optional)**  \n\nFor a 2\u202f\u00d7\u202f2 payoff matrix  \n\n\\[\nA=\\begin{pmatrix}\na & b\\\\\nc & d\n\\end{pmatrix},\n\\]\n\nthe mixed\u2011strategy probabilities can be found by solving  \n\n\\[\np\\,a + (1-p)\\,c = p\\,b + (1-p)\\,d\n\\]\n\nfor Player\u202fI\u2019s row\u2011mixing probability \\(p\\), and similarly for Player\u202fII. The common value is then  \n\n\\[\nV = p\\,a + (1-p)\\,c = p\\,b + (1-p)\\,d.\n\\]",
+    "reference":"First, test the matrix for a saddle point. If no saddle point exists, solve for the optimal mixed strategies by setting up an equation that equalizes expected payoffs across opponent moves[cite: 1].",
+    "faithfulness":0.5,
+    "llm_context_precision_with_reference":1.0
+  }
+]

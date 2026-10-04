@@ -1,6 +1,6 @@
 import zipfile
 from types import SimpleNamespace
-
+import requests
 import pytest
 
 from app.services import ingestion
@@ -38,8 +38,34 @@ def test_ingest_docx_raises_a_value_error_when_the_loader_returns_no_pages(monke
         ingestion.ingest_docx(b"irrelevant bytes", "empty.docx")
 
 
+class _FakeResponse:
+    """Stand-in for requests.Response, covering just what fetch_bounded uses."""
+
+    def __init__(self, chunks, status_code=200, headers=None, encoding="utf-8"):
+        self._chunks = chunks
+        self.status_code = status_code
+        self.headers = headers or {}
+        self.encoding = encoding
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        return False
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.exceptions.HTTPError(f"{self.status_code} Client Error")
+
+    def iter_content(self, chunk_size=8192):
+        yield from self._chunks
+
+
 def test_ingest_web_extracts_and_chunks_the_page_text(monkeypatch):
-    monkeypatch.setattr(ingestion.trafilatura, "fetch_url", lambda url: "<html>raw</html>")
+    monkeypatch.setattr(
+        ingestion.requests, "get",
+        lambda *a, **kw: _FakeResponse([b"<html>raw</html>"])
+    )
     monkeypatch.setattr(ingestion.trafilatura, "extract", lambda html: "Some real extracted article text.")
 
     chunks = ingestion.ingest_web("https://example.com/article")
@@ -50,14 +76,20 @@ def test_ingest_web_extracts_and_chunks_the_page_text(monkeypatch):
 
 
 def test_ingest_web_raises_when_the_page_cannot_be_fetched(monkeypatch):
-    monkeypatch.setattr(ingestion.trafilatura, "fetch_url", lambda url: None)
+    monkeypatch.setattr(
+        ingestion.requests, "get",
+        lambda *a, **kw: _FakeResponse([], status_code=404)
+    )
 
     with pytest.raises(ValueError, match="Could not load content"):
         ingestion.ingest_web("https://example.com/dead-link")
 
 
 def test_ingest_web_raises_when_extraction_finds_no_content(monkeypatch):
-    monkeypatch.setattr(ingestion.trafilatura, "fetch_url", lambda url: "<html></html>")
+    monkeypatch.setattr(
+        ingestion.requests, "get",
+        lambda *a, **kw: _FakeResponse([b"<html></html>"])
+    )
     monkeypatch.setattr(ingestion.trafilatura, "extract", lambda html: None)
 
     with pytest.raises(ValueError, match="No content found"):
